@@ -67,6 +67,43 @@ rows_to_extract <- apply(trajpro_wide, 1, function(row) {
 valeurs_bizarre <- trajpro_wide[rows_to_extract, ]
 print(valeurs_bizarre)
 
+#Gérer les listes à deux ou trois éléments
+# Remplacer les listes de taille 2 par la dernière valeur
+# Remplacer les listes de taille 3 par la valeur du milieu
 
+trajpro_wide_modifie <- trajpro_wide  # Créer une copie de votre dataframe pour ne pas modifier l'original
+
+# Appliquer les remplacements
+trajpro_wide_modifie[] <- lapply(trajpro_wide, function(col) {
+  sapply(col, function(cell) {
+    # Si la cellule est une liste de taille 2, on garde le dernier élément
+    if (length(cell) == 2) {
+      return(cell[2])
+    }
+    # Si la cellule est une liste de taille 3, on garde l'élément du milieu
+    else if (length(cell) == 3) {
+      return(cell[2])
+    }
+    # Sinon, on retourne la cellule telle quelle
+    else {
+      return(cell)
+    }
+  })
+})
+
+# Afficher le résultat modifié
+print(trajpro_wide_modifie)
+
+
+# Identifiant des individus avec traj trop chaotiques
+identifiants_to_remove <- unique(valeurs_bizarre$ident) 
+
+# Supprimer les lignes dans trajpro_wide_modifie concernée
+trajpro_wide_modifie_clean <- trajpro_wide_modifie[!trajpro_wide_modifie$ident %in% identifiants_to_remove, ]
+print(trajpro_wide_modifie_clean)
+
+#Trouver toutes les longueurs de listes
+unique_lengths_2 <- unique(unlist(lapply(trajpro_wide_modifie_clean, function(col) lapply(col, length))))
+print(unique_lengths_2)
 
 
