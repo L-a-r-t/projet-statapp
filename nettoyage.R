@@ -107,3 +107,14 @@ unique_lengths_2 <- unique(unlist(lapply(trajpro_wide_modifie_clean, function(co
 print(unique_lengths_2)
 
 
+# Gestions problème de période
+trajpro$debproan <- as.integer(trajpro$debproan)  
+trajpro$p_gan <- as.integer(trajpro$p_gan)  
+
+# Identifier les individus avec des dates inversées (start_date > end_date)
+dates_inversées <- trajpro %>% 
+  filter(debproan > p_gan)
+
+# Afficher les individus avec des dates inversées
+print("Individus avec des dates inversées :")
+print(dates_inversées)
