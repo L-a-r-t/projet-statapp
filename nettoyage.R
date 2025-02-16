@@ -107,7 +107,7 @@ unique_lengths_2 <- unique(unlist(lapply(trajpro_wide_modifie_clean, function(co
 print(unique_lengths_2)
 
 
-# Gestions problème de période
+# Gestions problème de période (date inversée et il faudrait aussi gérer les chevauchement important)
 trajpro$debproan <- as.integer(trajpro$debproan)  
 trajpro$p_gan <- as.integer(trajpro$p_gan)  
 
