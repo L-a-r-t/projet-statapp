@@ -16,11 +16,19 @@ trajpro_clean <- trajpro %>%
 
 head(trajpro_clean)
 
+#Proposition format long
+trajpro_long <- trajpro_clean %>% select(-c(p_gan, debproag ,p_gage, debproan))
+
+head(trajpro_long)
+
+
+
+#Ce que j'avais fait avant pour format wide mais je pense que le format long est plus approprié
 #Supprimer colonnes non utilisées
-trajpro_clean <- trajpro_clean %>% select(-c(p_nlig, p_gan, debproag ,p_gage, debproan))
+trajpro_c <- trajpro_clean %>% select(-c(p_nlig, p_gan, debproag ,p_gage, debproan))
 
 #Format wide
-trajpro_wide <- trajpro_clean %>%
+trajpro_wide <- trajpro_c %>%
   pivot_wider(names_from = Années, values_from = p_gactiv)
 
 #Trouver liste de doublon la plus grande
@@ -107,7 +115,7 @@ unique_lengths_2 <- unique(unlist(lapply(trajpro_wide_modifie_clean, function(co
 print(unique_lengths_2)
 
 
-# Gestions problème de période (date inversée et il faudrait aussi gérer les chevauchement important)
+# Gestions problème de période
 trajpro$debproan <- as.integer(trajpro$debproan)  
 trajpro$p_gan <- as.integer(trajpro$p_gan)  
 
@@ -118,3 +126,4 @@ dates_inversées <- trajpro %>%
 # Afficher les individus avec des dates inversées
 print("Individus avec des dates inversées :")
 print(dates_inversées)
+
