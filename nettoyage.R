@@ -21,6 +21,24 @@ trajpro_long <- trajpro_clean %>% select(-c(p_gan, debproag ,p_gage, debproan))
 
 head(trajpro_long)
 
+# Tables test petites avec les situations types qui posent problème pour tester des fonctions de transformations 
+df_initial <- data.frame(
+  p_nlig = c(1, 2, 3, 1, 2, 3, 4),
+  ident  = c(1, 1, 1, 2, 2, 2, 2),
+  p_gactiv  = c("Formation", "Emploi", "Chômage", "Emploi", "Chômage", "Formation", "Emploi"),
+  p_gan = c(2003, 2005, 2006, 2006, 2008, 2008, 2009),
+  debproan = c(2000, 2003, 2005, 2004, 2006, 2008, 2008),
+  debproag  = c(18, 21, 36, 18, 20, 22, 22),
+  p_gage  = c(21, 36, 37, 20, 22, 22, 23)
+)
+
+df_final <- data.frame(
+  ident = c(1, 1, 1, 1, 1, 1, 1, 2, 2, 2, 2, 2, 2),
+  p_gactiv = c("Formation", "Formation", "Formation", "Emploi", "Emploi", "Chômage", "Chômage", "Emploi", "Emploi", "Chômage", "Chômage", "Formation", "Emploi"),
+  année = c(2000, 2001, 2002, 2003, 2004, 2005, 2006, 2004, 2005, 2006, 2007, 2008, 2009),
+  trans = c("-", "-","-","Formation -> Emploi","-","Emploi -> Chômage","-","-","-","Emploi -> Chômage","-","Chômage -> Formation","Formation -> Emploi")
+)
+
 
 
 #Ce que j'avais fait avant pour format wide mais je pense que le format long est plus approprié
