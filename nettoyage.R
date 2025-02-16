@@ -39,6 +39,39 @@ df_final <- data.frame(
   trans = c("-", "-","-","Formation -> Emploi","-","Emploi -> Chômage","-","-","-","Emploi -> Chômage","-","Chômage -> Formation","Formation -> Emploi")
 )
 
+# Ebauche code (il a des pb à régler)
+# Initialisation du dataframe final
+df_transformed <- data.frame(
+  ident = integer(),
+  p_gactiv = character(),
+  année = integer(),
+  trans = character()
+)
+# Parcourir les lignes de df_initial pour créer df_final
+for (i in 2:(nrow(df_initial) )) {
+      
+    # Sélectionner les lignes successives pour chaque ident
+    if (df_initial$ident[i] == df_initial$ident[i - 1]) {
+             
+          # Vérifier la transition des activités
+          transition <- ifelse(df_initial$p_nlig[i] != df_initial$p_nlig[i - 1], 
+                                paste(df_initial$p_gactiv[i-1], "->", df_initial$p_gactiv[i]), 
+                                "-")
+               
+          # Ajouter une ligne au dataframe final
+          df_transformed <- rbind(df_transformed, data.frame(
+                     ident = df_initial$ident[i],
+                     p_gactiv = df_initial$p_gactiv[i],
+                     année = df_initial$debproan[i],
+                     trans = transition
+                   ))
+               }
+}
+
+# Afficher le dataframe transformé
+print(df_transformed)
+
+
 
 
 #Ce que j'avais fait avant pour format wide mais je pense que le format long est plus approprié
