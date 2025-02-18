@@ -105,7 +105,7 @@ trajpro_wide_modifie_clean <- trajpro_wide_modifie_clean %>% select(-c("0":"13")
 
 df<-trajpro_wide_modifie_clean
 
-df <- merge(trajpro_wide_modifie_clean, indiv[, c("ident", "group1", "anaise", "finetu_an", "finetu_age")], by = "ident", all.x = TRUE)
+df <- merge(trajpro_wide_modifie_clean, indiv[, c("ident", "group1", "anaise", "finetu_an", "finetu_age", "origine_tous_g2")], by = "ident", all.x = TRUE)
 head(df)
 
 df <- df %>%
@@ -142,11 +142,47 @@ df_35 <- df_35 %>% filter(!is.na(`14`))
 
 df_35 <- df_35 %>% select(-c("36":"60"))
 
-df_35[, 2:23] <- as.character(df[, 2:23])
+df_35 <- df_35 %>% filter(group1 %in% c(3,4,5))
+
+# Vérifier la longueur de chaque colonne (après unlist)
+col_lengths <- sapply(df_35[2:23], function(col) length(unlist(col)))
+print(col_lengths)
+
+for(colname in names(df_35)[2:23]) {
+  # On transforme chaque colonne en vecteur
+  col_unlist <- unlist(df_35[[colname]])
+  # Si la longueur est trop courte, on complète avec NA
+  if(length(col_unlist) < nrow(df_35)){
+    col_unlist <- c(col_unlist, rep(NA, nrow(df_35) - length(col_unlist)))
+  }
+  df_35[[colname]] <- col_unlist
+}
+
+df_35 <- df_35 %>% filter(if_all(2:23, ~ !is.na(.)))
+
+df_35[,2:23] <- lapply(df_35[,2:23], unlist)
 sapply(df_35, class)
 
 library(TraMineR)
 
 df_35.labels <- c("Salariat", "Indépendant", "Chômage", "Etudes", "Foyer", "Autres", "Variables")
 df_35.scode <- c(1, 2, 3, 4, 5, 6, 7)
+
 df_35.seq <- seqdef(df_35, 2:23, states = df_35.scode, labels = df_35.labels)
+
+# Plot sur toutes la population
+par(mfrow = c(2, 2),   # 2 lignes, 2 colonnes
+    mar = c(4, 4, 3, 5))  
+
+seqiplot(df_35.seq, withlegend = F, title = "Index plot (10 first sequences)", border = NA)
+seqfplot(df_35.seq, withlegend = F, border = NA, title = "Sequence frequency plot")
+seqdplot(df_35.seq, withlegend = F, border = NA, title = "State distribution plot")
+seqlegend(df_35.seq, fontsize = 0.8)
+
+par(mfrow = c(1,2))
+# Entropy index
+seqHtplot(df_35.seq, title = "Entropy index")
+#Histogramme turbulence
+Turbulence <- seqST(df_35.seq) 
+summary(Turbulence) 
+hist(Turbulence, col = "cyan", main = "Sequence turbulence")
