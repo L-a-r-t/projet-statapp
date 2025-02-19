@@ -7,6 +7,17 @@ library(TraMineR)
 library(dplyr)
 library(tidyr)
 
+#### Recodage p_gactiv. On regroupe les modalités 6 et 7 
+trajpro <- trajpro %>% mutate(p_gactiv2 = case_when(
+  p_gactiv == 1 ~ 1,  # Salarié.e
+  p_gactiv == 2 ~ 2,  # À son compte ou indépendant
+  p_gactiv == 3 ~ 3,  # Chômage
+  p_gactiv == 4 ~ 4,  # Études ou stage non rémunéré (formation continue)
+  p_gactiv == 5 ~ 5,  # Femme ou homme au foyer
+  p_gactiv == 6 | p_gactiv == 7 ~ 6,  # Autres
+  TRUE ~ NA_real_  # NA en format numérique
+))
+
 # Gestions problème de période
 trajpro$debproan <- as.integer(trajpro$debproan)  
 trajpro$p_gan <- as.integer(trajpro$p_gan)  
@@ -37,11 +48,11 @@ trajpro_clean$age <-trajpro_clean$Années-trajpro_clean$debproan+trajpro_clean$d
 
 fin<-35
 
-trajpro_c <- trajpro_clean %>% select(-c(p_nlig, p_gan, debproan, debproag, p_gage, Années))
+trajpro_c <- trajpro_clean %>% select(-c(p_nlig, p_gan, debproan, debproag, p_gage, Années, p_gactiv))
 
 #Format wide
 trajpro_wide <- trajpro_c %>%
-  pivot_wider(names_from = age, values_from = p_gactiv, id_cols = c(ident))
+  pivot_wider(names_from = age, values_from = p_gactiv2, id_cols = c(ident))
 
 # Extraire les noms des colonnes sauf "ident"
 seq_cols <- setdiff(colnames(trajpro_wide), "ident")
@@ -103,9 +114,30 @@ print(unique_lengths_2)
 
 trajpro_wide_modifie_clean <- trajpro_wide_modifie_clean %>% select(-c("0":"13"))
 
+
+#### Recodage origine_tous_g2
+indiv <- indiv %>% mutate(origine_tous_g2bis = case_when(
+  (origine_tous_g2 == 0 | origine_tous_g2 == 10 | origine_tous_g2 == 11) ~ 1, # population sans ascendance migratoire directe
+  (origine_tous_g2 == 20) ~ 20, # Originaires d'outre-mer
+  (origine_tous_g2 == 22) ~ 22, # Descendant.es d'originaires d'outre-mer
+  (origine_tous_g2 == 30 | origine_tous_g2 == 40) ~ 30, # Immigré.es du Maghreb
+  (origine_tous_g2 == 33 |origine_tous_g2 == 44) ~ 33, # Descendant.es d'immigré.es originaires du Maghreb
+  (origine_tous_g2 == 50 | origine_tous_g2 == 60 | origine_tous_g2 == 70) ~ 50, # Immigré.es originaires d'Afrique Subsaharienne
+  (origine_tous_g2 == 55 | origine_tous_g2 == 66 | origine_tous_g2 == 77) ~ 55, # Descendant.es d'immigré.es originaires d'Afrique Subsaharienne
+  (origine_tous_g2 == 80 |  origine_tous_g2 == 90 | origine_tous_g2 == 100 |  origine_tous_g2 == 110) ~ 60, # Immigré.es originaires d'Asie et du Moyen-Orient
+  (origine_tous_g2 == 88 | origine_tous_g2 == 99 | origine_tous_g2 == 111) ~ 66, # Descendant.es d'immigré.es originaires d'Asie et du Moyen-Orient
+  (origine_tous_g2 == 120 | origine_tous_g2 == 130) ~ 70, # Immigré.es originaires d'Europe du Sud
+  (origine_tous_g2 == 121 | origine_tous_g2 == 131) ~ 77, # Descendant.es d'originaires d'immigré.es d'Europe du Sud
+  (origine_tous_g2== 140 | origine_tous_g2 == 150) ~ 80, # Immigré.es originaires du reste de l'Europe
+  (origine_tous_g2 == 141 | origine_tous_g2 == 151) ~ 88, # Descendant.es d'immigré.es originaires du reste de l'Europe
+  (origine_tous_g2 == 160 ~ 90), # Immigré.es d'autres pays
+  (origine_tous_g2 == 161 ~99), # Descendant.es d'immigré.es d'autres pays
+  TRUE ~ NA_real_
+))
+
 df<-trajpro_wide_modifie_clean
 
-df <- merge(trajpro_wide_modifie_clean, indiv[, c("ident", "group1", "anaise", "finetu_an", "finetu_age", "origine_tous_g2")], by = "ident", all.x = TRUE)
+df <- merge(trajpro_wide_modifie_clean, indiv[, c("ident", "group1", "anaise", "finetu_an", "finetu_age", "origine_tous_g2bis")], by = "ident", all.x = TRUE)
 head(df)
 
 df <- df %>%
@@ -126,7 +158,7 @@ filter_df_by_age <- function(data, limit_age) {
 # On applique la fonction pour des valeurs de 14 à 40
 # et on calcule le nombre de lignes restant pour chaque limit_age
 df_counts <- tibble(
-  limit_age = 14:40,
+  limit_age = 14:60,
   n_rows = map_int(limit_age, ~ nrow(filter_df_by_age(df, .x)))
 )
 
@@ -135,6 +167,9 @@ ggplot(df_counts, aes(x = limit_age, y = n_rows)) +
   geom_col() +
   labs(x = "limit_age", y = "Nombre de lignes") +
   theme_minimal()
+
+# Avec 35 ans on perd 10 000 individus dans le nombre dans la base initiale
+# Avec 30 ans, on en perd 7000
                                          
 df_35 <- filter_df_by_age(df, 35)
 
@@ -165,19 +200,22 @@ sapply(df_35, class)
 
 library(TraMineR)
 
-df_35.labels <- c("Salariat", "Indépendant", "Chômage", "Etudes", "Foyer", "Autres", "Variables")
-df_35.scode <- c(1, 2, 3, 4, 5, 6, 7)
+df_35.labels <- c("Salariat", "Indépendant", "Chômage", "Etudes", "Au foyer", "Autres")
+df_35.scode <- c(1, 2, 3, 4, 5, 6)
 
 df_35.seq <- seqdef(df_35, 2:23, states = df_35.scode, labels = df_35.labels)
 
-# Plot sur toutes la population
-par(mfrow = c(2, 2),   # 2 lignes, 2 colonnes
-    mar = c(4, 4, 3, 5))  
+# Plot sur pop maj+descendants d'immig+domiens
+par(mfrow = c(2, 2), mar = c(4, 4, 3, 5), oma = c(0, 0, 3, 0))  
 
-seqiplot(df_35.seq, withlegend = F, title = "Index plot (10 first sequences)", border = NA)
+seqiplot(df_35.seq, withlegend = F, title = "Index plot (10 premières trajectoires)", border = NA)
 seqfplot(df_35.seq, withlegend = F, border = NA, title = "Sequence frequency plot")
 seqdplot(df_35.seq, withlegend = F, border = NA, title = "State distribution plot")
-seqlegend(df_35.seq, fontsize = 0.5)
+seqlegend(df_35.seq, fontsize = 0.7)
+
+# Ajouter un titre général
+mtext("Trajectoires dans la population d'intérêt", outer = TRUE, cex = 1.5, font = 1)
+
 
 par(mfrow = c(1,2))
 # Entropy index
@@ -186,3 +224,34 @@ seqHtplot(df_35.seq, title = "Entropy index")
 Turbulence <- seqST(df_35.seq) 
 summary(Turbulence) 
 hist(Turbulence, col = "cyan", main = "Sequence turbulence")
+
+df_35_as <- df_35 %>% filter(origine_tous_g2bis == 33)
+df_35_mag <- df_35 %>% filter(origine_tous_g2bis == 66)
+df_35_maj <- df_35 %>% filter(origine_tous_g2bis == 1)
+df_35_mag.seq <- seqdef(df_35_mag, 2:23, states = df_35.scode, labels = df_35.labels)
+df_35_as.seq <- seqdef(df_35_as, 2:23, states = df_35.scode, labels = df_35.labels)
+df_35_maj.seq <- seqdef(df_35_maj, 2:23, states = df_35.scode, labels = df_35.labels)
+seqdplot(df_35_mag.seq, with.legend = T, border = NA, main = "Chronogramme pour les descendants d'immigrés du Maghreb")
+seqdplot(df_35_as.seq, with.legend = T, border = NA, main = "Chronogramme pour les descendants d'immigrés d'Asie et du Moyen Orient")
+
+# Plot de comparaison
+par(mfrow = c(2, 2), mar = c(4, 4, 2.5, 5.5), oma = c(0, 0, 3, 0))  
+
+seqdplot(df_35_mag.seq, withlegend = F, border = NA, title = "Maghreb")
+seqdplot(df_35_as.seq, withlegend = F, border = NA, title = "Asie et Moyen Orient")
+seqdplot(df_35_maj.seq, withlegend = F, border = NA, title = "Population majoritaire")
+seqlegend(df_35.seq, fontsize = 0.8)
+
+mtext("Chronogrammes comparés", outer = TRUE, cex = 1.5, font = 2)
+
+
+
+
+#Problème ici, à checker
+df_40 <- filter_df_by_age(df, 40)
+
+df_40 <- df %>% filter(!is.na(`14`))
+
+df_40 <- df %>% select(-c('41':'60'))
+
+df_40 <- df %>% filter(group1 %in% c(3,4,5))
