@@ -177,7 +177,7 @@ par(mfrow = c(2, 2),   # 2 lignes, 2 colonnes
 seqiplot(df_35.seq, withlegend = F, title = "Index plot (10 first sequences)", border = NA)
 seqfplot(df_35.seq, withlegend = F, border = NA, title = "Sequence frequency plot")
 seqdplot(df_35.seq, withlegend = F, border = NA, title = "State distribution plot")
-seqlegend(df_35.seq, fontsize = 0.8)
+seqlegend(df_35.seq, fontsize = 0.5)
 
 par(mfrow = c(1,2))
 # Entropy index
