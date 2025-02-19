@@ -137,9 +137,11 @@ indiv <- indiv %>% mutate(origine_tous_g2bis = case_when(
 
 df<-trajpro_wide_modifie_clean
 
-df <- merge(trajpro_wide_modifie_clean, indiv[, c("ident", "group1", "anaise", "finetu_an", "finetu_age", "origine_tous_g2bis")], by = "ident", all.x = TRUE)
+df <- merge(trajpro_wide_modifie_clean, indiv[, c("ident", "group1", "anaise", "finetu_an", "finetu_age", "f_finetg", "f_finetuag", "f_finetu_drap", "origine_tous_g2bis")], by = "ident", all.x = TRUE)
 head(df)
 
+# On perd environ 300 personnes qui n'ont pas voulu déclarer la date
+# à laquelle iels ont fini leurs études...
 df <- df %>%
   mutate(across(matches("^\\d+$"), 
                 ~ ifelse(as.numeric(cur_column()) < finetu_age, 4, .)))
@@ -200,10 +202,24 @@ sapply(df_35, class)
 
 library(TraMineR)
 
+
+get_distribution_for_age <- function(seq, age) {
+  age_col <- as.character(age)
+  if (!age_col %in% colnames(seq)) {
+    stop("L'âge demandé n'est pas présent dans les colonnes de la séquence.")
+  }
+  states <- seq[, age_col]
+  distribution <- table(states)
+  percentages <- prop.table(distribution) * 100
+  return(percentages)
+}
+
 df_35.labels <- c("Salariat", "Indépendant", "Chômage", "Etudes", "Au foyer", "Autres")
 df_35.scode <- c(1, 2, 3, 4, 5, 6)
 
 df_35.seq <- seqdef(df_35, 2:23, states = df_35.scode, labels = df_35.labels)
+
+get_distribution_for_age(df_35.seq, 30)
 
 # Plot sur pop maj+descendants d'immig+domiens
 par(mfrow = c(2, 2), mar = c(4, 4, 3, 5), oma = c(0, 0, 3, 0))  
