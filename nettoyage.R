@@ -197,6 +197,26 @@ for(colname in names(df_35)[2:23]) {
 
 df_35 <- df_35 %>% filter(if_all(2:23, ~ !is.na(.)))
 
+# On veut connaître la distribution des modalités de 
+# origin_tous_g2bis sur notre échantillon filtré
+
+# On ne garde que les vraies modalités de origin_tous_g2bis
+df_35$origine_tous_g2bis <- as.factor(df_35$origine_tous_g2bis)
+df_35$origine_tous_g2bis <- droplevels(df_35$origine_tous_g2bis)
+
+# Barplot
+ggplot(df_35, aes(x = origine_tous_g2bis)) +
+  geom_bar(fill = "skyblue") +
+  geom_text(stat = "count", aes(label = ..count..), vjust = -0.1, size = 4, angle = 70) +
+  labs(
+    title = "Distribution des Modalités de la Variable origine_tous_g2",
+    x = "Modalités de origine_tous_g2",
+    y = "Nombre d'Observations"
+  ) +
+  theme_minimal() +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+
+
 df_35[,2:23] <- lapply(df_35[,2:23], unlist)
 sapply(df_35, class)
 
