@@ -268,13 +268,13 @@ df_35_mag.seq <- seqdef(df_35_mag, 2:23, states = df_35.scode, labels = df_35.la
 df_35_as.seq <- seqdef(df_35_as, 2:23, states = df_35.scode, labels = df_35.labels)
 df_35_maj.seq <- seqdef(df_35_maj, 2:23, states = df_35.scode, labels = df_35.labels)
 seqdplot(df_35_mag.seq, with.legend = T, border = NA, main = "Chronogramme pour les descendants d'immigrés du Maghreb")
-seqdplot(df_35_as.seq, with.legend = T, border = NA, main = "Chronogramme pour les descendants d'immigrés d'Asie et du Moyen Orient")
+seqdplot(df_35_as.seq, with.legend = T, border = NA, main = "Chronogramme pour les descendants d'immigrés d'Asie")
 
 # Plot de comparaison
 par(mfrow = c(2, 2), mar = c(4, 4, 2.5, 5.5), oma = c(0, 0, 3, 0))  
 
 seqdplot(df_35_mag.seq, withlegend = F, border = NA, title = "Maghreb")
-seqdplot(df_35_as.seq, withlegend = F, border = NA, title = "Asie et Moyen Orient")
+seqdplot(df_35_as.seq, withlegend = F, border = NA, title = "Asie")
 seqdplot(df_35_maj.seq, withlegend = F, border = NA, title = "Population majoritaire")
 seqlegend(df_35.seq, fontsize = 0.8)
 
