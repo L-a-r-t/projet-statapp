@@ -153,8 +153,13 @@ library(ggplot2)
 # Hypothèse : on supprime (on ne garde pas) les lignes dont l'âge < limit_age
 # Donc on conserve celles pour lesquelles (2020 - anaise) >= limit_age
 filter_df_by_age <- function(data, limit_age) {
-  data %>%
+  data <- data %>%
     filter((2020 - anaise) > limit_age)
+  data <- data %>% filter(!is.na(`14`))
+  
+  data <- data %>% select(-c("36":"60"))
+  
+  data <- data %>% filter(group1 %in% c(3,4,5))
 }
 
 # On applique la fonction pour des valeurs de 14 à 40
@@ -170,16 +175,11 @@ ggplot(df_counts, aes(x = limit_age, y = n_rows)) +
   labs(x = "limit_age", y = "Nombre de lignes") +
   theme_minimal()
 
-# Avec 35 ans on perd 10 000 individus dans le nombre dans la base initiale
-# Avec 30 ans, on en perd 7000
+# Avec 35 ans on perd 4 000 individus parmi tous ceux qui pourraient nous 
+# intéresser (pop maj ou descendant d'immigrés)
+# Avec 30 ans, on en perd 5 000
                                          
 df_35 <- filter_df_by_age(df, 35)
-
-df_35 <- df_35 %>% filter(!is.na(`14`))
-
-df_35 <- df_35 %>% select(-c("36":"60"))
-
-df_35 <- df_35 %>% filter(group1 %in% c(3,4,5))
 
 # Vérifier la longueur de chaque colonne (après unlist)
 col_lengths <- sapply(df_35[2:23], function(col) length(unlist(col)))
