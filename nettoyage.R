@@ -7,17 +7,6 @@ library(TraMineR)
 library(dplyr)
 library(tidyr)
 
-#### Recodage p_gactiv. On regroupe les modalités 6 et 7 
-trajpro <- trajpro %>% mutate(p_gactiv2 = case_when(
-  p_gactiv == 1 ~ 1,  # Salarié.e
-  p_gactiv == 2 ~ 2,  # À son compte ou indépendant
-  p_gactiv == 3 ~ 3,  # Chômage
-  p_gactiv == 4 ~ 4,  # Études ou stage non rémunéré (formation continue)
-  p_gactiv == 5 ~ 5,  # Femme ou homme au foyer
-  p_gactiv == 6 | p_gactiv == 7 ~ 6,  # Autres
-  TRUE ~ NA_real_  # NA en format numérique
-))
-
 # Gestions problème de période
 trajpro$debproan <- as.integer(trajpro$debproan)  
 trajpro$p_gan <- as.integer(trajpro$p_gan)  
@@ -48,11 +37,11 @@ trajpro_clean$age <-trajpro_clean$Années-trajpro_clean$debproan+trajpro_clean$d
 
 fin<-35
 
-trajpro_c <- trajpro_clean %>% select(-c(p_nlig, p_gan, debproan, debproag, p_gage, Années, p_gactiv))
+trajpro_c <- trajpro_clean %>% select(-c(p_nlig, p_gan, debproan, debproag, p_gage, Années))
 
 #Format wide
 trajpro_wide <- trajpro_c %>%
-  pivot_wider(names_from = age, values_from = p_gactiv2, id_cols = c(ident))
+  pivot_wider(names_from = age, values_from = p_gactiv, id_cols = c(ident))
 
 # Extraire les noms des colonnes sauf "ident"
 seq_cols <- setdiff(colnames(trajpro_wide), "ident")
@@ -137,7 +126,7 @@ indiv <- indiv %>% mutate(origine_tous_g2bis = case_when(
 
 df<-trajpro_wide_modifie_clean
 
-df <- merge(trajpro_wide_modifie_clean, indiv[, c("ident", "group1", "anaise", "finetu_an", "finetu_age", "f_finetg", "f_finetuag", "f_finetu_drap", "origine_tous_g2bis")], by = "ident", all.x = TRUE)
+df <- merge(trajpro_wide_modifie_clean, indiv[, c("ident", "group1", "anaise", "finetu_an", "finetu_age", "f_finetg", "f_finetuag", "f_finetu_drap", "origine_tous_g2bis", "sexee")], by = "ident", all.x = TRUE)
 head(df)
 
 # On perd environ 300 personnes qui n'ont pas voulu déclarer la date
@@ -234,8 +223,8 @@ get_distribution_for_age <- function(seq, age) {
   return(percentages)
 }
 
-df_35.labels <- c("Salariat", "Indépendant", "Chômage", "Etudes", "Au foyer", "Autres")
-df_35.scode <- c(1, 2, 3, 4, 5, 6)
+df_35.labels <- c("Salariat", "Indépendant", "Chômage", "Etudes", "Au foyer", "Autres", "Variable")
+df_35.scode <- c(1, 2, 3, 4, 5, 6, 7)
 
 df_35.seq <- seqdef(df_35, 2:23, states = df_35.scode, labels = df_35.labels)
 
@@ -252,7 +241,6 @@ seqlegend(df_35.seq, fontsize = 0.7)
 # Ajouter un titre général
 mtext("Trajectoires dans la population d'intérêt", outer = TRUE, cex = 1.5, font = 1)
 
-
 par(mfrow = c(1,2))
 # Entropy index
 seqHtplot(df_35.seq, title = "Entropy index")
@@ -261,33 +249,64 @@ Turbulence <- seqST(df_35.seq)
 summary(Turbulence) 
 hist(Turbulence, col = "cyan", main = "Sequence turbulence")
 
+#DF séquences par origine
 df_35_as <- df_35 %>% filter(origine_tous_g2bis == 33)
 df_35_mag <- df_35 %>% filter(origine_tous_g2bis == 66)
 df_35_maj <- df_35 %>% filter(origine_tous_g2bis == 1)
+df_35_af <- df_35 %>% filter(origine_tous_g2bis == 55)
+df_35_eurr <- df_35 %>% filter(origine_tous_g2bis == 77)
+df_35_eurs <- df_35 %>% filter(origine_tous_g2bis == 88)
+
+#Séquences par origine
 df_35_mag.seq <- seqdef(df_35_mag, 2:23, states = df_35.scode, labels = df_35.labels)
 df_35_as.seq <- seqdef(df_35_as, 2:23, states = df_35.scode, labels = df_35.labels)
 df_35_maj.seq <- seqdef(df_35_maj, 2:23, states = df_35.scode, labels = df_35.labels)
-seqdplot(df_35_mag.seq, with.legend = T, border = NA, main = "Chronogramme pour les descendants d'immigrés du Maghreb")
-seqdplot(df_35_as.seq, with.legend = T, border = NA, main = "Chronogramme pour les descendants d'immigrés d'Asie")
+df_35_af.seq <- seqdef(df_35_af, 2:23, states = df_35.scode, labels = df_35.labels)
+df_35_eurr.seq <- seqdef(df_35_eurr, 2:23, states = df_35.scode, labels = df_35.labels)
+df_35_eurs.seq <- seqdef(df_35_eurs, 2:23, states = df_35.scode, labels = df_35.labels)
 
 # Plot de comparaison
-par(mfrow = c(2, 2), mar = c(4, 4, 2.5, 5.5), oma = c(0, 0, 3, 0))  
+png("Chronogrammes comparés.png", width = 2200, height = 2700, res = 300)
 
-seqdplot(df_35_mag.seq, withlegend = F, border = NA, title = "Maghreb")
-seqdplot(df_35_as.seq, withlegend = F, border = NA, title = "Asie")
-seqdplot(df_35_maj.seq, withlegend = F, border = NA, title = "Population majoritaire")
-seqlegend(df_35.seq, fontsize = 0.8)
+par(mfrow = c(4, 2), mar = c(4, 4, 2, 2), oma = c(0, 0, 3, 0))  
 
-mtext("Chronogrammes comparés", outer = TRUE, cex = 1.5, font = 2)
+seqdplot(df_35_mag.seq, withlegend = F, border = NA, main = "Descendants d'immigrés - Maghreb")
+seqdplot(df_35_as.seq, withlegend = F, border = NA, main = "Descendants d'immigrés - Asie")
+seqdplot(df_35_af.seq, withlegend = F, border = NA, main = "Descendants d'immigrés - Afrique subsaharienne")
+seqdplot(df_35_eurs.seq, withlegend = F, border = NA, main = "Descendants d'immigrés - Europe du sud")
+seqdplot(df_35_eurr.seq, withlegend = F, border = NA, main = "Descendants d'immigrés - Reste de l'Europe")
+seqdplot(df_35_maj.seq, withlegend = F, border = NA, main = "Population majoritaire")
+
+seqlegend(df_35.seq, ncol = 2, position = "top", cex=1.4)
+
+dev.off()
+
+#Plot par genre
+df_35_h <- df_35 %>% filter(sexee == 1)
+df_35_f <- df_35 %>% filter(sexee == 2)
+df_35_h.seq <- seqdef(df_35_h, 2:23, states = df_35.scode, labels = df_35.labels)
+df_35_f.seq <- seqdef(df_35_f, 2:23, states = df_35.scode, labels = df_35.labels)
+
+png("Chronogrammes comparés (genre).png", width = 2200, height = 1500, res = 300)
+
+par(mfrow = c(2, 2), mar = c(4, 4, 2, 2), oma = c(0, 0, 3, 0))  
+
+seqdplot(df_35_h.seq, withlegend = F, border = NA, main = "Hommes")
+seqdplot(df_35_f.seq, withlegend = F, border = NA, main = "Femmes")
+
+seqlegend(df_35.seq, ncol = 2, position = "top", cex=1)
+
+dev.off()
 
 
-
-
-#Problème ici, à checker
+#df_40
 df_40 <- filter_df_by_age(df, 40)
-
 df_40 <- df %>% filter(!is.na(`14`))
-
 df_40 <- df %>% select(-c('41':'60'))
-
 df_40 <- df %>% filter(group1 %in% c(3,4,5))
+#problème ici
+df_40[,2:28] <- lapply(df_40[,2:28], unlist)
+df_40.seq <- seqdef(df_40, 2:28, states = df_35.scode, labels = df_35.labels)
+
+#Entropie
+seqHtplot(df_40.seq)
