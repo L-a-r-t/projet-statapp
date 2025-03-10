@@ -281,20 +281,27 @@ seqlegend(df_35.seq, ncol = 2, position = "top", cex=1.4)
 
 dev.off()
 
-#Plot par genre
-df_35_h <- df_35 %>% filter(sexee == 1)
-df_35_f <- df_35 %>% filter(sexee == 2)
-df_35_h.seq <- seqdef(df_35_h, 2:23, states = df_35.scode, labels = df_35.labels)
-df_35_f.seq <- seqdef(df_35_f, 2:23, states = df_35.scode, labels = df_35.labels)
+#Plot par genre et comp entre asie et pop maj (asie car assez d'enquêtés sinon techniques)
+df_35_h_as <- df_35 %>% filter(sexee == 1 & origine_tous_g2bis == 33)
+df_35_f_as <- df_35 %>% filter(sexee == 2 & origine_tous_g2bis == 33)
+df_35_h_maj <- df_35 %>% filter(sexee == 1 & origine_tous_g2bis == 1)
+df_35_f_maj <- df_35 %>% filter(sexee == 2 & origine_tous_g2bis == 1)
+df_35_h_as.seq <- seqdef(df_35_h_as, 2:23, states = df_35.scode, labels = df_35.labels)
+df_35_f_as.seq <- seqdef(df_35_f_as, 2:23, states = df_35.scode, labels = df_35.labels)
+df_35_h_maj.seq <- seqdef(df_35_h_maj, 2:23, states = df_35.scode, labels = df_35.labels)
+df_35_f_maj.seq <- seqdef(df_35_f_maj, 2:23, states = df_35.scode, labels = df_35.labels)
 
-png("Chronogrammes comparés (genre).png", width = 2200, height = 1500, res = 300)
 
-par(mfrow = c(2, 2), mar = c(4, 4, 2, 2), oma = c(0, 0, 3, 0))  
+png("Genre_Orig.png", width = 2000, height = 1900, res = 300)
 
-seqdplot(df_35_h.seq, withlegend = F, border = NA, main = "Hommes")
-seqdplot(df_35_f.seq, withlegend = F, border = NA, main = "Femmes")
+par(mfrow = c(3, 2), mar = c(4, 4, 2, 2), oma = c(0, 0, 3, 0))  
 
-seqlegend(df_35.seq, ncol = 2, position = "top", cex=1)
+seqdplot(df_35_h_maj.seq, withlegend = F, border = NA, main = "Population majoritaire (Hommes)")
+seqdplot(df_35_f_maj.seq, withlegend = F, border = NA, main = "Population majoritaire (Femmes)")
+seqdplot(df_35_h_as.seq, withlegend = F, border = NA, main = "Descendants d'immigrés - Asie (Hommes)")
+seqdplot(df_35_f_as.seq, withlegend = F, border = NA, main = "Descendants d'immigrés - Asie (Femmes)")
+
+seqlegend(df_35.seq, ncol = 2, position = "top", cex=1.2)
 
 dev.off()
 
