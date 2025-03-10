@@ -126,8 +126,47 @@ indiv <- indiv %>% mutate(origine_tous_g2bis = case_when(
 
 df<-trajpro_wide_modifie_clean
 
-df <- merge(trajpro_wide_modifie_clean, indiv[, c("ident", "group1", "anaise", "finetu_an", "finetu_age", "f_finetg", "f_finetuag", "f_finetu_drap", "origine_tous_g2bis", "sexee")], by = "ident", all.x = TRUE)
+df <- merge(trajpro_wide_modifie_clean, indiv[, c("ident", "group1", "anaise", "finetu_an", "finetu_age", "f_finetg", "f_finetuag", "f_finetu_drap", "origine_tous_g2bis", "sexee", "andebtr", "duretu")], by = "ident", all.x = TRUE)
 head(df)
+
+# Age au premier travail
+df <- df %>%
+  mutate(agedebtr = andebtr - anaise)
+
+
+# Age moyen du premier emploi et durée moyenne des études selon groupe d'origine
+tableau_statistiques <- df %>%
+  filter(origine_tous_g2bis %in% c(33, 55, 66, 77, 88, 1)) %>%
+  filter(!duretu %in% c(7777, 8888)) %>%  # Exclure les individus dont duretu est 7777 ou 8888
+  group_by(origine_tous_g2bis) %>%
+  summarise(
+    "Age moyen du premier emploi" = mean(agedebtr, na.rm = TRUE),  
+    "Durée moyenne des études" = mean(duretu, na.rm = TRUE)
+  )
+
+tableau_statistiques <- tableau_statistiques %>%
+  mutate(origine_tous_g2bis = case_when(
+    origine_tous_g2bis == 33 ~ "Maghreb",
+    origine_tous_g2bis == 55 ~ "Afrique Subsaharienne",
+    origine_tous_g2bis == 66 ~ "Asie",
+    origine_tous_g2bis == 77 ~ "Europe du Sud",
+    origine_tous_g2bis == 88 ~ "Reste de l'Europe",
+    origine_tous_g2bis == 1  ~ "Population sans ascendance migratoire"
+  ))
+
+
+tableau_statistiques <- tableau_statistiques %>%
+  rename(
+    "Origine des parents (parmis G2)" = origine_tous_g2bis
+  )
+
+# Afficher le tableau 
+print(tableau_statistiques)
+
+
+# Afficher le tableau
+print(age_moyen_par_groupe)
+
 
 # On perd environ 300 personnes qui n'ont pas voulu déclarer la date
 # à laquelle iels ont fini leurs études...
