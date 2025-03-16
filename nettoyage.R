@@ -348,15 +348,35 @@ seqmtplot(df_35.seq, with.legend = FALSE)
 
 # Clustering ?
 
-dist.om1 <- seqdist(df_35.seq, method = "OM", indel = 1, sm = "TRATE")
-
+dissim <- seqdist(df_35.seq, method = "OM", indel = 1, sm = "TRATE")
 library(cluster)
-clusterward1 <- agnes(dist.om1, diss = TRUE, method = "ward")
-plot(clusterward1, which.plot = 2)
-cl1.4 <- cutree(clusterward1, k = 4)
-cl1.4fac <- factor(cl1.4, labels = paste("Type", 1:4))
 
-seqIplot(df_35.seq, group = cl1.4fac, sortv = "from.start")
+# Dendogramme sur échantillon de 100 individus pour det à la mano nombre de cluster 
+
+set.seed(42)  
+dis <- dissim[sample(1:nrow(dissim), 100), sample(1:ncol(dissim), 100)]
+agnes_sample <- agnes(dis, method="ward", keep.diss=FALSE)
+plot(agnes_sample, which.plot=2)
+
+# Classification ascendantes hiérarchiqyes sur tout l'échantillon
+agnes <- as.dist(dissim) %>% agnes(method="ward", keep.diss=FALSE)
+
+# Premier cluster un peu arbitraire
+cl6 <- cutree(agnes, k = 6)
+cl6fac <- factor(cl6, labels = paste("Type", 1:6))
+
+# State distribution dans chaque cluster
+seqdplot(df_35.seq, group = cl6fac, border = NA)
+
+# Modal distribution pour tous les clusters
+seqmsplot(df_35.seq, group=cl6fac, xtlab=14:50, cex.legend=0.8)
+
+# Index plot dans chaque cluster
+seqIplot(df_35.seq, group = cl6fac, sortv = "from.start")
+
+# Séquence type dans chaque cluster (résultat hyper bizarre)
+seqrplot(df_35.seq, diss = dissim, group = cl6fac, border = NA)
+
 
 
 #df_40
