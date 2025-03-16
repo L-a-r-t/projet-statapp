@@ -163,13 +163,7 @@ tableau_statistiques <- tableau_statistiques %>%
 # Afficher le tableau 
 print(tableau_statistiques)
 
-
-# Afficher le tableau
-print(age_moyen_par_groupe)
-
-
-# On perd environ 300 personnes qui n'ont pas voulu déclarer la date
-# à laquelle iels ont fini leurs études...
+# On perd environ 300 personnes qui n'ont pas voulu déclarer la date à laquelle iels ont fini leurs études...
 df <- df %>%
   mutate(across(matches("^\\d+$"), 
                 ~ ifelse(as.numeric(cur_column()) < finetu_age, 4, .)))
@@ -343,6 +337,26 @@ seqdplot(df_35_f_as.seq, withlegend = F, border = NA, main = "Descendants d'immi
 seqlegend(df_35.seq, ncol = 2, position = "top", cex=1.2)
 
 dev.off()
+
+# Sequence des états modaux (état "normal" à chaque moment, celui qui apparait le plus)
+par(mfrow = c(1, 1))
+seqmsplot(df_35.seq, with.legend = FALSE, border = NA)
+
+# Temps moyen passé dans chaque état
+seqmtplot(df_35.seq, with.legend = FALSE)
+
+
+# Clustering ?
+
+dist.om1 <- seqdist(df_35.seq, method = "OM", indel = 1, sm = "TRATE")
+
+library(cluster)
+clusterward1 <- agnes(dist.om1, diss = TRUE, method = "ward")
+plot(clusterward1, which.plot = 2)
+cl1.4 <- cutree(clusterward1, k = 4)
+cl1.4fac <- factor(cl1.4, labels = paste("Type", 1:4))
+
+seqIplot(df_35.seq, group = cl1.4fac, sortv = "from.start")
 
 
 #df_40
