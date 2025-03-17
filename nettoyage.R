@@ -374,9 +374,104 @@ seqmsplot(df_35.seq, group=cl6fac, xtlab=14:50, cex.legend=0.8)
 # Index plot dans chaque cluster
 seqIplot(df_35.seq, group = cl6fac, sortv = "from.start")
 
+seqtreedisplay(cl6fac, type = "d", border = NA, show.depth = TRUE)
+
 # Séquence type dans chaque cluster (résultat hyper bizarre)
 seqrplot(df_35.seq, diss = dissim, group = cl6fac, border = NA)
 
+clustqual4 <- wcClusterQuality(dissim, cl6, weights = df_35$weight)
+clustqual4$stats
+clustqual4$ASW
+
+#Calcul meilleur nombre cluster selon les différentes méthodes entre 1 et 20
+wardRange <- as.clustrange(wardCluster, diss = dissim, weights = df_35$weight, ncluster = 20)
+summary(wardRange, max.rank = 2)
+plot(wardRange, stat = c("ASW", "HG", "PBC","HC"), norm = "zscore")
+
+
+# Version avec librairie utilisée dans la thèse de Studer + plusieurs mesures + plusieures algo
+
+library(WeightedCluster)
+
+# Matrice de coûts constants (arbitraire)
+couts <- seqsubm(df_35.seq, method="CONSTANT", cval=2) #changer seqact
+
+### Définition de différentes distances
+# OM classique
+disOM <- seqdist(df_35.seq, method="OM", sm=couts, indel=1)
+# OM avec fréquence des transisions
+disOMfreq <- seqdist(df_35.seq, method = "OM", indel = 1, sm = "TRATE") 
+# Sequencing (flexible)
+disOMtr <- seqdist(df_35.seq, method="OMstran", otto=0.1, sm=couts, indel=1)
+# Sequencing (strict) (basé sur sous séquences communes)
+disNMSmst <- seqdist(df_35.seq, method="NMSMST", kweights=22, tpow=1)
+# Timing/Positionnement
+disham <- seqdist(df_35.seq, method="HAM", sm=couts)
+
+# Analyse en cluster
+
+# Distance OMfreq
+# Clustering hiérarchique 
+wardClusterOMfreq <- hclust(as.dist(disOMfreq), method = "ward.D", members = df_35$weight)
+
+# Nombre de partition
+wardRangeOMfreq <- as.clustrange(wardClusterOMfreq, diss = disOMfreq, weights = df_35$weight, ncluster = 20)
+summary(wardRangeOMfreq, max.rank = 2)
+plot(wardRangeOMfreq, stat = c("ASW", "HG", "PBC","HC"), norm = "zscore")
+
+# Séparation en cluster
+wardTreeOMfreq <- as.seqtree(wardClusterOMfreq, seqdata = df_35.seq, diss = disOMfreq, ncluster = 4)
+clust4OMfreq <- cutree(wardClusterOMfreq, k = 4)
+
+# Visualisations des cluster
+seqtreedisplay(wardTreeOMfreq, type = "d", border = NA, show.depth = TRUE, file = "tree.png")
+library(knitr)
+include_graphics("treeOMtr.png")
+
+seqdplot(df_35.seq, group = clust4OMfreq, border = NA)
+
+# PAM 
+pamclust4OMfreq <- wcKMedoids(disOMfreq, k = 4, weights = df_35$weight)
+seqdplot(df_35.seq, group = pamclust4OMfreq$clustering, border = NA)
+print(df_35.seq[unique(pamclust4OMfreq$clustering),], format = "SPS")
+
+# Comparaison des algos
+clustqual4OMfreq <- wcClusterQuality(disOMfreq, clust4OMfreq, weights = df_35$weight)
+clustqual4OMfreq$stats
+pamclust4OMfreq$stats
+# 
+
+
+# Distance OMtr
+# Clustering hiérarchique 
+wardClusterOMtr <- hclust(as.dist(disOMtr), method = "ward.D", members = df_35$weight)
+
+# Nombre de partition
+wardRange <- as.clustrange(wardClusterOMtr, diss = disOMtr, weights = df_35$weight, ncluster = 20)
+summary(wardRange, max.rank = 2)
+plot(wardRange, stat = c("ASW", "HG", "PBC","HC"), norm = "zscore")
+
+# Séparation en cluster
+wardTreeOMtr <- as.seqtree(wardClusterOMtr, seqdata = df_35.seq, diss = disOMtr, ncluster = 4)
+clust4OMtr <- cutree(wardClusterOMtr, k = 4)
+
+# Visualisations des cluster
+seqtreedisplay(wardTreeOMtr, type = "d", border = NA, show.depth = TRUE, file = "tree.png")
+library(knitr)
+include_graphics("tree.png")
+
+seqdplot(df_35.seq, group = clust4OMtr, border = NA)
+
+# PAM 
+pamclust4OMtr <- wcKMedoids(disOMtr, k = 4, weights = df_35$weight)
+seqdplot(df_35.seq, group = pamclust4OMtr$clustering, border = NA)
+print(df_35.seq[unique(pamclust4OMtr$clustering),], format = "SPS")
+
+# Comparaison des algos
+clustqual4OMtr <- wcClusterQuality(disOMtr, clust4OMtr, weights = df_35$weight)
+clustqual4OMtr$stats
+pamclust4OMtr$stats
+# PAM semble être meilleur choix
 
 
 #df_40
