@@ -412,34 +412,67 @@ disham <- seqdist(df_35.seq, method="HAM", sm=couts)
 
 # Distance OMfreq
 # Clustering hiérarchique 
+wardClusterOM <- hclust(as.dist(disOM), method = "ward.D", members = df_35$weight)
+
+# Nombre de partition
+wardRangeOM <- as.clustrange(wardClusterOM, diss = disOM, weights = df_35$weight, ncluster = 10)
+summary(wardRangeOM, max.rank = 2)
+plot(wardRangeOM, stat = c("ASW", "HG", "PBC","HC"), norm = "zscore")
+
+# Séparation en cluster
+wardTreeOM <- as.seqtree(wardClusterOM, seqdata = df_35.seq, diss = disOM, ncluster = 8)
+clust8OM <- cutree(wardClusterOM, k = 8)
+
+# Visualisations des cluster
+seqtreedisplay(wardTreeOM, type = "d", border = NA, show.depth = TRUE, file = "treeOM.png")
+library(knitr)
+include_graphics("treeOM.png")
+
+graphics.off()
+seqdplot(df_35.seq, group = clust8OM, border = NA)
+
+# PAM 
+pamclust8OM <- wcKMedoids(disOM, k = 8, weights = df_35$weight)
+seqdplot(df_35.seq, group = pamclust8OM$clustering, border = NA)
+print(df_35.seq[unique(pamclust8OM$clustering),], format = "SPS")
+
+# Comparaison des algos
+clustqual8OM <- wcClusterQuality(disOM, clust8OM, weights = df_35$weight)
+clustqual8OM$stats
+pamclust8OM$stats
+# pas mal, jsp comment idscriminer mais imo trop de cluster
+
+
+# Distance OMfreq
+# Clustering hiérarchique 
 wardClusterOMfreq <- hclust(as.dist(disOMfreq), method = "ward.D", members = df_35$weight)
 
 # Nombre de partition
-wardRangeOMfreq <- as.clustrange(wardClusterOMfreq, diss = disOMfreq, weights = df_35$weight, ncluster = 20)
+wardRangeOMfreq <- as.clustrange(wardClusterOMfreq, diss = disOMfreq, weights = df_35$weight, ncluster = 10)
 summary(wardRangeOMfreq, max.rank = 2)
 plot(wardRangeOMfreq, stat = c("ASW", "HG", "PBC","HC"), norm = "zscore")
 
 # Séparation en cluster
-wardTreeOMfreq <- as.seqtree(wardClusterOMfreq, seqdata = df_35.seq, diss = disOMfreq, ncluster = 4)
-clust4OMfreq <- cutree(wardClusterOMfreq, k = 4)
+wardTreeOMfreq <- as.seqtree(wardClusterOMfreq, seqdata = df_35.seq, diss = disOMfreq, ncluster = 6)
+clust6OMfreq <- cutree(wardClusterOMfreq, k = 6)
 
 # Visualisations des cluster
-seqtreedisplay(wardTreeOMfreq, type = "d", border = NA, show.depth = TRUE, file = "tree.png")
+seqtreedisplay(wardTreeOMfreq, type = "d", border = NA, show.depth = TRUE, file = "treeOMtr.png")
 library(knitr)
 include_graphics("treeOMtr.png")
 
-seqdplot(df_35.seq, group = clust4OMfreq, border = NA)
+seqdplot(df_35.seq, group = clust6OMfreq, border = NA)
 
 # PAM 
-pamclust4OMfreq <- wcKMedoids(disOMfreq, k = 4, weights = df_35$weight)
-seqdplot(df_35.seq, group = pamclust4OMfreq$clustering, border = NA)
-print(df_35.seq[unique(pamclust4OMfreq$clustering),], format = "SPS")
+pamclust6OMfreq <- wcKMedoids(disOMfreq, k = 6, weights = df_35$weight)
+seqdplot(df_35.seq, group = pamclust6OMfreq$clustering, border = NA)
+print(df_35.seq[unique(pamclust6OMfreq$clustering),], format = "SPS")
 
 # Comparaison des algos
-clustqual4OMfreq <- wcClusterQuality(disOMfreq, clust4OMfreq, weights = df_35$weight)
-clustqual4OMfreq$stats
-pamclust4OMfreq$stats
-# 
+clustqual6OMfreq <- wcClusterQuality(disOMfreq, clust6OMfreq, weights = df_35$weight)
+clustqual6OMfreq$stats
+pamclust6OMfreq$stats
+# ???? mais globalement pas mal
 
 
 # Distance OMtr
@@ -472,6 +505,71 @@ clustqual4OMtr <- wcClusterQuality(disOMtr, clust4OMtr, weights = df_35$weight)
 clustqual4OMtr$stats
 pamclust4OMtr$stats
 # PAM semble être meilleur choix
+
+
+# Distance NMSmst
+# Clustering hiérarchique 
+wardClusterNMSmst <- hclust(as.dist(disNMSmst), method = "ward.D", members = df_35$weight)
+
+# Nombre de partition
+wardRangeNMSmst <- as.clustrange(wardClusterNMSmst, diss = disNMSmst, weights = df_35$weight, ncluster = 10)
+summary(wardRangeNMSmst, max.rank = 2)
+plot(wardRangeNMSmst, stat = c("ASW", "HG", "PBC","HC"), norm = "zscore")
+
+# Séparation en cluster (selon meilleure partition)
+wardTreeNMSmst <- as.seqtree(wardClusterNMSmst, seqdata = df_35.seq, diss = disNMSmst, ncluster = 3)
+clust3NMSmst <- cutree(wardClusterNMSmst, k = 3)
+
+# Visualisations des cluster
+seqtreedisplay(wardTreeNMSmst, type = "d", border = NA, show.depth = TRUE, file = "treeNMSmst.png")
+include_graphics("treeNMSmst.png")
+
+seqdplot(df_35.seq, group = clust3NMSmst, border = NA)
+# Archi nul en gros
+
+# PAM 
+pamclust3NMSmst <- wcKMedoids(disNMSmst, k = 3, weights = df_35$weight)
+seqdplot(df_35.seq, group = pamclust3NMSmst$clustering, border = NA)
+print(df_35.seq[unique(pamclust3NMSmst$clustering),], format = "SPS")
+
+# Comparaison des algos
+clustqual3NMSmst <- wcClusterQuality(disNMSmst, clust3NMSmst, weights = df_35$weight)
+clustqual3NMSmst$stats
+pamclust3NMSmst$stats
+# CAH un peu meilleur mais les deux pue la merde
+
+
+# Distance Hamming
+# Clustering hiérarchique 
+wardClusterham <- hclust(as.dist(disham), method = "ward.D", members = df_35$weight)
+
+# Nombre de partition
+wardRangeham <- as.clustrange(wardClusterham, diss = disham, weights = df_35$weight, ncluster = 10)
+summary(wardRangeham, max.rank = 2)
+plot(wardRangeham, stat = c("ASW", "HG", "PBC","HC"), norm = "zscore")
+
+# Séparation en cluster (selon meilleure partition)
+wardTreeham <- as.seqtree(wardClusterham, seqdata = df_35.seq, diss = disham, ncluster = 4)
+clust4ham <- cutree(wardClusterham, k = 4)
+
+# Visualisations des cluster
+seqtreedisplay(wardTreeham, type = "d", border = NA, show.depth = TRUE, file = "treeham.png")
+include_graphics("treeham.png")
+
+seqdplot(df_35.seq, group = clust4ham, border = NA)
+# Archi nul en gros
+
+# PAM 
+pamclust4ham <- wcKMedoids(disham, k = 4, weights = df_35$weight)
+seqdplot(df_35.seq, group = pamclust4ham$clustering, border = NA)
+print(df_35.seq[unique(pamclust4ham$clustering),], format = "SPS")
+
+# Comparaison des algos
+clustqual4ham <- wcClusterQuality(disham, clust4ham, weights = df_35$weight)
+clustqual4ham$stats
+pamclust4ham$stats
+# CAH un peu meilleur mais pas fou
+
 
 
 #df_40
