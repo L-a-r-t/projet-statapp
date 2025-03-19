@@ -410,18 +410,19 @@ disham <- seqdist(df_35.seq, method="HAM", sm=couts)
 
 # Analyse en cluster
 
-# Distance OMfreq
+# Distance OM
 # Clustering hiérarchique 
 wardClusterOM <- hclust(as.dist(disOM), method = "ward.D", members = df_35$weight)
 
 # Nombre de partition
 wardRangeOM <- as.clustrange(wardClusterOM, diss = disOM, weights = df_35$weight, ncluster = 10)
 summary(wardRangeOM, max.rank = 2)
+dev.off()
 plot(wardRangeOM, stat = c("ASW", "HG", "PBC","HC"), norm = "zscore")
 
 # Séparation en cluster
-wardTreeOM <- as.seqtree(wardClusterOM, seqdata = df_35.seq, diss = disOM, ncluster = 8)
-clust8OM <- cutree(wardClusterOM, k = 8)
+wardTreeOM <- as.seqtree(wardClusterOM, seqdata = df_35.seq, diss = disOM, ncluster = 7)
+clust8OM <- cutree(wardClusterOM, k = 7)
 
 # Visualisations des cluster
 seqtreedisplay(wardTreeOM, type = "d", border = NA, show.depth = TRUE, file = "treeOM.png")
@@ -432,7 +433,7 @@ graphics.off()
 seqdplot(df_35.seq, group = clust8OM, border = NA)
 
 # PAM 
-pamclust8OM <- wcKMedoids(disOM, k = 8, weights = df_35$weight)
+pamclust8OM <- wcKMedoids(disOM, k = 7, weights = df_35$weight)
 seqdplot(df_35.seq, group = pamclust8OM$clustering, border = NA)
 print(df_35.seq[unique(pamclust8OM$clustering),], format = "SPS")
 
@@ -450,16 +451,16 @@ wardClusterOMfreq <- hclust(as.dist(disOMfreq), method = "ward.D", members = df_
 # Nombre de partition
 wardRangeOMfreq <- as.clustrange(wardClusterOMfreq, diss = disOMfreq, weights = df_35$weight, ncluster = 10)
 summary(wardRangeOMfreq, max.rank = 2)
-plot(wardRangeOMfreq, stat = c("ASW", "HG", "PBC","HC"), norm = "zscore")
+plot(wardRangeOMfreq, stat = c("ASW", "PBC","HC"), norm = "zscore")
 
 # Séparation en cluster
 wardTreeOMfreq <- as.seqtree(wardClusterOMfreq, seqdata = df_35.seq, diss = disOMfreq, ncluster = 6)
 clust6OMfreq <- cutree(wardClusterOMfreq, k = 6)
 
 # Visualisations des cluster
-seqtreedisplay(wardTreeOMfreq, type = "d", border = NA, show.depth = TRUE, file = "treeOMtr.png")
+seqtreedisplay(wardTreeOMfreq, type = "d", border = NA, show.depth = TRUE, file = "treeOMfreq.png")
 library(knitr)
-include_graphics("treeOMtr.png")
+include_graphics("treeOMfreq.png")
 
 seqdplot(df_35.seq, group = clust6OMfreq, border = NA)
 
@@ -480,9 +481,9 @@ pamclust6OMfreq$stats
 wardClusterOMtr <- hclust(as.dist(disOMtr), method = "ward.D", members = df_35$weight)
 
 # Nombre de partition
-wardRange <- as.clustrange(wardClusterOMtr, diss = disOMtr, weights = df_35$weight, ncluster = 20)
+wardRange <- as.clustrange(wardClusterOMtr, diss = disOMtr, weights = df_35$weight, ncluster = 10)
 summary(wardRange, max.rank = 2)
-plot(wardRange, stat = c("ASW", "HG", "PBC","HC"), norm = "zscore")
+plot(wardRange, stat = c("ASW", "PBC","HC"), norm = "zscore")
 
 # Séparation en cluster
 wardTreeOMtr <- as.seqtree(wardClusterOMtr, seqdata = df_35.seq, diss = disOMtr, ncluster = 4)
@@ -546,7 +547,7 @@ wardClusterham <- hclust(as.dist(disham), method = "ward.D", members = df_35$wei
 # Nombre de partition
 wardRangeham <- as.clustrange(wardClusterham, diss = disham, weights = df_35$weight, ncluster = 10)
 summary(wardRangeham, max.rank = 2)
-plot(wardRangeham, stat = c("ASW", "HG", "PBC","HC"), norm = "zscore")
+plot(wardRangeham, stat = c("ASW", "PBC","HC"), norm = "zscore")
 
 # Séparation en cluster (selon meilleure partition)
 wardTreeham <- as.seqtree(wardClusterham, seqdata = df_35.seq, diss = disham, ncluster = 4)
@@ -557,7 +558,6 @@ seqtreedisplay(wardTreeham, type = "d", border = NA, show.depth = TRUE, file = "
 include_graphics("treeham.png")
 
 seqdplot(df_35.seq, group = clust4ham, border = NA)
-# Archi nul en gros
 
 # PAM 
 pamclust4ham <- wcKMedoids(disham, k = 4, weights = df_35$weight)
@@ -569,6 +569,51 @@ clustqual4ham <- wcClusterQuality(disham, clust4ham, weights = df_35$weight)
 clustqual4ham$stats
 pamclust4ham$stats
 # CAH un peu meilleur mais pas fou
+
+# Description
+
+png("Silhouette OM freq.png", width = 2200, height = 2700, res = 300)
+silOMfreq <- wcSilhouetteObs(disOMfreq, clust6OMfreq, weights = df_35$weight)
+seqIplot(df_35.seq, group = clust6OMfreq, sortv = silOMfreq)
+dev.off()
+
+png("Silhouette OM tr.png", width = 2000, height = 1900, res = 300)
+silOMtr <- wcSilhouetteObs(disOMtr, clust4OMtr, weights = df_35$weight)
+seqIplot(df_35.seq, group = clust4OMtr, sortv = silOMtr)
+dev.off()
+
+
+# Nommer cluster
+df_35$OMfreq6 <- factor(clust6OMfreq, 
+                        levels = c(1, 2, 3, 4, 5, 6), 
+                        labels = c("Ecole-Emploi",
+                                   "Etudes-Emploi", 
+                                   "Etude-Indep.", 
+                                   "Au foyer",
+                                   "Etudes longues",
+                                   "Ecole-Instabilité pro"))
+
+table(df_35$OMfreq6)
+
+df_35$OMtr4 <- factor(clust4OMtr, 
+                        levels = c(1, 2, 3, 4), 
+                        labels = c("Etudes-Emploi",
+                                   "Traj. plus variables", 
+                                   "Etudes-Chômage-Emploi",
+                                   "Autres (?)"))
+
+table(df_35$OMtr4)
+
+seqdplot(df_35.seq, group = df_35$OMtr4, border = NA)
+
+png("Chronog OM freq.png", width = 2200, height = 2700, res = 300)
+seqdplot(df_35.seq, group = df_35$OMfreq6, border = NA)
+dev.off()
+
+png("Chronog OM tr.png", width = 2000, height = 1900, res = 300)
+seqdplot(df_35.seq, group = df_35$OMtr4, border = NA)
+dev.off()
+
 
 
 
