@@ -408,6 +408,93 @@ disNMSmst <- seqdist(df_35.seq, method="NMSMST", kweights=22, tpow=1)
 # Timing/Positionnement
 disham <- seqdist(df_35.seq, method="HAM", sm=couts)
 
+
+
+clusterForMethodAndDist <- function(method, distance, k) {
+  if (method == "PAM") {
+    cluster <- wcKMedoids(distance, k = k, weights = df_35$weight)
+    stats <- cluster$stats
+    
+    return(list(cluster=cluster, stats=stats))
+  } 
+  else if (method == "H") {
+    cluster <- hclust(as.dist(distance), method = "ward.D", members = df_35$weight)
+    range <- as.clustrange(cluster, diss = distance, weights = df_35$weight, ncluster = k)
+    tree <- as.seqtree(cluster, seqdata = df_35.seq, diss = distance, ncluster = k)
+    treeCluster <- cutree(cluster, k = k)
+    quality <- wcClusterQuality(distance, treeCluster, weights = df_35$weight)
+    stats <- quality$stats
+    
+    return(list(cluster=cluster, stats=stats, tree=tree, cutree=treeCluster))
+  }
+  else {
+    stop("La méthode n'est pas reconnue, utiliser 'PAM' ou 'H'.")
+  }
+}
+
+##################
+# Visulisation des stats de qualités des différentes distances
+##################
+
+ranges_hierarchical <- list()
+ranges_pam <- list()
+range_names <- c("Optimal Matching", "OM Freq", "OM Transit", "NMSmst", "Hamming")
+
+for (distance in list(disOM, disOMfreq, disOMtr, disNMSmst, disham)) {
+  result_h <- clusterForMethodAndDist(method = 'H', distance = distance, k = 10)
+  result_pam <- clusterForMethodAndDist(method = 'PAM', distance = distance, k = 10)
+  ranges_hierarchical[[length(ranges) + 1]] <- as.clustrange(result$cluster,
+                                                diss = distance,
+                                                weights = df_35$weight,
+                                                ncluster = 10)
+  ranges_pam[[length(ranges) + 1]] <- as.clustrange(result$cluster,
+                                                             diss = distance,
+                                                             weights = df_35$weight,
+                                                             ncluster = 10)
+}
+
+library(ggplot2)
+
+makeComparisonPlot <- function(stat_name, algo) {
+  if (algo == "PAM") {
+    ranges <- ranges_pam
+  } else {
+    ranges <- ranges_hierarchical
+  }
+  # On combine en une df les valeurs de la statistique choisie pour chaque distance 
+  df_list <- lapply(seq_along(ranges), function(i) {
+    stats_df <- ranges[[i]]$stats
+    
+    cluster_nums <- as.numeric(gsub("cluster", "", rownames(stats_df)))
+    
+    vals <- stats_df[,stat_name]
+    
+    data.frame(
+      cluster = cluster_nums,
+      statistique = vals,
+      distance = range_names[i]
+    )
+  })
+  
+  # Bind all into a single data frame
+  df <- do.call(rbind, df_list)
+  
+  # Plot ASW vs cluster, with one line per element in `ranges`
+  ggplot(df, aes(x = cluster, y = statistique, color = distance)) +
+    geom_line() +
+    geom_point() +
+    labs(x = "Nombre de Clusters", y = stat_name, title = sprintf("%s pour différentes distances (Clustering Hierarchique)", stat_name)) +
+    theme_minimal()
+}
+
+makeComparisonPlot("ASW")
+makeComparisonPlot("HC")
+makeComparisonPlot("PBC")
+
+################
+################
+
+
 # Analyse en cluster
 
 # Distance OM
