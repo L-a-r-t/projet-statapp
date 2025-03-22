@@ -413,10 +413,13 @@ disham <- seqdist(df_35.seq, method="HAM", sm=couts)
 clusterForMethodAndDist <- function(method, distance, k) {
   if (method == "PAM") {
     cluster <- wcKMedoids(distance, k = k, weights = df_35$weight)
-    stats <- cluster$stats
+
+    treeCluster <- cluster$clustering
+    quality <- wcClusterQuality(distance, treeCluster, weights = df_35$weight)
+    stats <- quality$stats
     
     return(list(cluster=cluster, stats=stats))
-  } 
+  }
   else if (method == "H") {
     cluster <- hclust(as.dist(distance), method = "ward.D", members = df_35$weight)
     range <- as.clustrange(cluster, diss = distance, weights = df_35$weight, ncluster = k)
@@ -437,59 +440,147 @@ clusterForMethodAndDist <- function(method, distance, k) {
 ##################
 
 ranges_hierarchical <- list()
-ranges_pam <- list()
 range_names <- c("Optimal Matching", "OM Freq", "OM Transit", "NMSmst", "Hamming")
 
-for (distance in list(disOM, disOMfreq, disOMtr, disNMSmst, disham)) {
-  result_h <- clusterForMethodAndDist(method = 'H', distance = distance, k = 10)
-  result_pam <- clusterForMethodAndDist(method = 'PAM', distance = distance, k = 10)
-  ranges_hierarchical[[length(ranges) + 1]] <- as.clustrange(result$cluster,
-                                                diss = distance,
-                                                weights = df_35$weight,
-                                                ncluster = 10)
-  ranges_pam[[length(ranges) + 1]] <- as.clustrange(result$cluster,
-                                                             diss = distance,
-                                                             weights = df_35$weight,
-                                                             ncluster = 10)
+# 1) Clustering hiérarchique
+for (distance in list(disOMfreq, disOMtr, disNMSmst, disham)) {
+  h_clust <- hclust(as.dist(distance), method = "ward.D", members = df_35$weight)
+  ranges_hierarchical[[length(ranges_hierarchical) + 1]] <-
+    as.clustrange(h_clust, diss = distance, weights = df_35$weight, ncluster = 10)
 }
+
+# 2) K-médoïdes
+pam_range <- wcKMedRange(disOM, kvals = 2:10, weights = df_35$weight)
+pamOM <- wcKMedoids(disOM, k = 10, weights = df_35$weight)
+pam_range_10 <- subset(pam_range, k = 10)
+ranges_pam <- as.clustrange(pam_range, diss = disOM, ncluster = 10)
+ranges_pam <- as.clustrange(pam_range_10, diss = disOM, ncluster = 10)
+ranges_pam <- as.clustrange(pamOM, diss = disOM, ncluster = 10)
 
 library(ggplot2)
 
-makeComparisonPlot <- function(stat_name, algo) {
+makeComparisonPlot <- function(stat_name, algo="Hierarchique") {
   if (algo == "PAM") {
-    ranges <- ranges_pam
+    ranges <- pam_range
+    nom_algo <- "K-Médoïdes"
   } else {
     ranges <- ranges_hierarchical
+    nom_algo <- "Clustering Hiérarchique"
   }
   # On combine en une df les valeurs de la statistique choisie pour chaque distance 
   df_list <- lapply(seq_along(ranges), function(i) {
-    stats_df <- ranges[[i]]$stats
+    stats_obj <- ranges[[i]]$stats
     
-    cluster_nums <- as.numeric(gsub("cluster", "", rownames(stats_df)))
-    
-    vals <- stats_df[,stat_name]
-    
-    data.frame(
-      cluster = cluster_nums,
-      statistique = vals,
-      distance = range_names[i]
-    )
+    if (is.data.frame(stats_obj)) {
+      # Hierarchical output: a data frame
+      cluster_nums <- as.numeric(gsub("cluster", "", rownames(stats_obj)))
+      vals <- stats_obj[, stat_name]
+      data.frame(
+        cluster = cluster_nums,
+        statistique = vals,
+        distance = range_names[i]
+      )
+    } else if (is.numeric(stats_obj)) {
+      # PAM output: just a named numeric
+      # Return one row, e.g. for k=10
+      data.frame(
+        cluster = 10,
+        statistique = stats_obj[stat_name],
+        distance = range_names[i]
+      )
+    } else {
+      stop("Unexpected stats format")
+    }
   })
   
-  # Bind all into a single data frame
   df <- do.call(rbind, df_list)
   
   # Plot ASW vs cluster, with one line per element in `ranges`
   ggplot(df, aes(x = cluster, y = statistique, color = distance)) +
     geom_line() +
     geom_point() +
-    labs(x = "Nombre de Clusters", y = stat_name, title = sprintf("%s pour différentes distances (Clustering Hierarchique)", stat_name)) +
+    labs(x = "Nombre de Clusters", y = stat_name, title = sprintf("%s pour différentes distances (%s)", stat_name, nom_algo)) +
     theme_minimal()
 }
+
+
+df_list <- lapply(seq_along(pam_range), function(i) {
+  stats_obj <- pam_range[i]$stats
+  
+  if (is.data.frame(stats_obj)) {
+    # Hierarchical output: a data frame
+    cluster_nums <- as.numeric(gsub("cluster", "", rownames(stats_obj)))
+    vals <- stats_obj[, stat_name]
+    data.frame(
+      cluster = cluster_nums,
+      statistique = vals,
+      distance = "Optimal Matching"
+    )
+  } else if (is.numeric(stats_obj)) {
+    # PAM output: just a named numeric
+    # Return one row, e.g. for k=10
+    data.frame(
+      cluster = 10,
+      statistique = stats_obj["ASW"],
+      distance = "Optimal Matching"
+    )
+  } else {
+    stop("Unexpected stats format")
+  }
+})
+
+df <- do.call(rbind, df_list)
+
+# Plot ASW vs cluster, with one line per element in `ranges`
+ggplot(pam_range, aes(x = cluster, y = statistique, color = distance)) +
+  geom_line() +
+  geom_point() +
+  labs(x = "Nombre de Clusters", y = stat_name, title = sprintf("%s pour différentes distances (%s)", stat_name, nom_algo)) +
+  theme_minimal()
+
 
 makeComparisonPlot("ASW")
 makeComparisonPlot("HC")
 makeComparisonPlot("PBC")
+
+makeComparisonPlot("ASW", algo="PAM")
+makeComparisonPlot("HC", algo="PAM")
+makeComparisonPlot("PBC", algo="PAM")
+
+################
+################
+library(dplyr)
+library(ggplot2)
+
+# 1) For PAM: Add k-values, keep only ASW, rename method
+pam_range$stats$k <- pam_range$kvals
+df_pam <- pam_range$stats %>%
+  select(k, HC) %>%
+  mutate(distance = "Optimal Matching (PAM)")
+
+# 2) For Hierarchical: loop over the 4 objects, rename each method
+hier_labels <- c("OM Freq", "OM Transit", "NMSmst", "Hamming")
+
+df_hier <- do.call(rbind, lapply(seq_along(ranges_hierarchical), function(i) {
+  x <- ranges_hierarchical[[i]]
+  x$stats$k <- x$kvals
+  x$stats %>%
+    select(k, HC) %>%
+    mutate(distance = hier_labels[i])
+}))
+
+# 3) Combine PAM and hierarchical results
+df_combined <- bind_rows(df_pam, df_hier)
+
+# 4) Plot: color by method
+ggplot(df_combined, aes(x = k, y = HC, color = distance)) +
+  geom_line() +
+  labs(
+    title = "HC pour différentes distances",
+    x = "Nombre de Clusters",
+    y = "HC"
+  ) +
+  theme_minimal()
 
 ################
 ################
