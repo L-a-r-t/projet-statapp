@@ -126,7 +126,7 @@ indiv <- indiv %>% mutate(origine_tous_g2bis = case_when(
 
 df<-trajpro_wide_modifie_clean
 
-df <- merge(trajpro_wide_modifie_clean, indiv[, c("ident", "group1", "anaise", "finetu_an", "finetu_age", "f_finetg", "f_finetuag", "f_finetu_drap", "origine_tous_g2bis", "sexee", "andebtr", "duretu")], by = "ident", all.x = TRUE)
+df <- merge(trajpro_wide_modifie_clean, indiv[, c("ident", "group1", "anaise", "finetu_an", "finetu_age", "f_finetg", "f_finetuag", "f_finetu_drap", "origine_tous_g2bis", "sexee", "andebtr", "duretu", "poidsi")], by = "ident", all.x = TRUE)
 head(df)
 
 # Age au premier travail
@@ -256,12 +256,24 @@ get_distribution_for_age <- function(seq, age) {
   return(percentages)
 }
 
+
+##################
+# Définition de notre objet séquence
+##################
+
 df_35.labels <- c("Salariat", "Indépendant", "Chômage", "Etudes", "Au foyer", "Autres", "Variable")
 df_35.scode <- c(1, 2, 3, 4, 5, 6, 7)
 
-df_35.seq <- seqdef(df_35, 2:23, states = df_35.scode, labels = df_35.labels)
+df_35.seq <- seqdef(df_35, 2:23, states = df_35.scode, labels = df_35.labels, weights=df_35$poidsi)
 
 get_distribution_for_age(df_35.seq, 30)
+
+
+
+##################
+# Premières statistiques descriptives
+##################
+
 
 # Plot sur pop maj+descendants d'immig+domiens
 par(mfrow = c(2, 2), mar = c(4, 4, 3, 5), oma = c(0, 0, 3, 0))  
@@ -291,12 +303,12 @@ df_35_eurr <- df_35 %>% filter(origine_tous_g2bis == 77)
 df_35_eurs <- df_35 %>% filter(origine_tous_g2bis == 88)
 
 #Séquences par origine
-df_35_mag.seq <- seqdef(df_35_mag, 2:23, states = df_35.scode, labels = df_35.labels)
-df_35_as.seq <- seqdef(df_35_as, 2:23, states = df_35.scode, labels = df_35.labels)
-df_35_maj.seq <- seqdef(df_35_maj, 2:23, states = df_35.scode, labels = df_35.labels)
-df_35_af.seq <- seqdef(df_35_af, 2:23, states = df_35.scode, labels = df_35.labels)
-df_35_eurr.seq <- seqdef(df_35_eurr, 2:23, states = df_35.scode, labels = df_35.labels)
-df_35_eurs.seq <- seqdef(df_35_eurs, 2:23, states = df_35.scode, labels = df_35.labels)
+df_35_mag.seq <- seqdef(df_35_mag, 2:23, states = df_35.scode, labels = df_35.labels, weights=df_35_mag$poidsi)
+df_35_as.seq <- seqdef(df_35_as, 2:23, states = df_35.scode, labels = df_35.labels, weights=df_35_as$poidsi)
+df_35_maj.seq <- seqdef(df_35_maj, 2:23, states = df_35.scode, labels = df_35.labels, weights=df_35_maj$poidsi)
+df_35_af.seq <- seqdef(df_35_af, 2:23, states = df_35.scode, labels = df_35.labels, weights=df_35_af$poidsi)
+df_35_eurr.seq <- seqdef(df_35_eurr, 2:23, states = df_35.scode, labels = df_35.labels, weights=df_35_eurr$poidsi)
+df_35_eurs.seq <- seqdef(df_35_eurs, 2:23, states = df_35.scode, labels = df_35.labels, weights=df_35_eurs$poidsi)
 
 # Plot de comparaison
 png("Chronogrammes comparés.png", width = 2200, height = 2700, res = 300)
@@ -319,10 +331,10 @@ df_35_h_as <- df_35 %>% filter(sexee == 1 & origine_tous_g2bis == 33)
 df_35_f_as <- df_35 %>% filter(sexee == 2 & origine_tous_g2bis == 33)
 df_35_h_maj <- df_35 %>% filter(sexee == 1 & origine_tous_g2bis == 1)
 df_35_f_maj <- df_35 %>% filter(sexee == 2 & origine_tous_g2bis == 1)
-df_35_h_as.seq <- seqdef(df_35_h_as, 2:23, states = df_35.scode, labels = df_35.labels)
-df_35_f_as.seq <- seqdef(df_35_f_as, 2:23, states = df_35.scode, labels = df_35.labels)
-df_35_h_maj.seq <- seqdef(df_35_h_maj, 2:23, states = df_35.scode, labels = df_35.labels)
-df_35_f_maj.seq <- seqdef(df_35_f_maj, 2:23, states = df_35.scode, labels = df_35.labels)
+df_35_h_as.seq <- seqdef(df_35_h_as, 2:23, states = df_35.scode, labels = df_35.labels, weights=df_35_h_as$poidsi)
+df_35_f_as.seq <- seqdef(df_35_f_as, 2:23, states = df_35.scode, labels = df_35.labels, weights=df_35_f_as$poidsi)
+df_35_h_maj.seq <- seqdef(df_35_h_maj, 2:23, states = df_35.scode, labels = df_35.labels, weights=df_35_h_maj$poidsi)
+df_35_f_maj.seq <- seqdef(df_35_f_maj, 2:23, states = df_35.scode, labels = df_35.labels, weights=df_35_f_maj$poidsi)
 
 
 png("Genre_Orig.png", width = 2000, height = 1900, res = 300)
@@ -346,51 +358,13 @@ seqmsplot(df_35.seq, with.legend = FALSE, border = NA)
 seqmtplot(df_35.seq, with.legend = FALSE)
 
 
-# Clustering ?
 
-dissim <- seqdist(df_35.seq, method = "OM", indel = 1, sm = "TRATE")
+
+##################
+# Clustering
+##################
+
 library(cluster)
-
-# Dendogramme sur échantillon de 100 individus pour det à la mano nombre de cluster 
-
-set.seed(42)  
-dis <- dissim[sample(1:nrow(dissim), 100), sample(1:ncol(dissim), 100)]
-agnes_sample <- agnes(dis, method="ward", keep.diss=FALSE)
-plot(agnes_sample, which.plot=2)
-
-# Classification ascendantes hiérarchiqyes sur tout l'échantillon
-agnes <- as.dist(dissim) %>% agnes(method="ward", keep.diss=FALSE)
-
-# Premier cluster un peu arbitraire
-cl6 <- cutree(agnes, k = 6)
-cl6fac <- factor(cl6, labels = paste("Type", 1:6))
-
-# State distribution dans chaque cluster
-seqdplot(df_35.seq, group = cl6fac, border = NA)
-
-# Modal distribution pour tous les clusters
-seqmsplot(df_35.seq, group=cl6fac, xtlab=14:50, cex.legend=0.8)
-
-# Index plot dans chaque cluster
-seqIplot(df_35.seq, group = cl6fac, sortv = "from.start")
-
-seqtreedisplay(cl6fac, type = "d", border = NA, show.depth = TRUE)
-
-# Séquence type dans chaque cluster (résultat hyper bizarre)
-seqrplot(df_35.seq, diss = dissim, group = cl6fac, border = NA)
-
-clustqual4 <- wcClusterQuality(dissim, cl6, weights = df_35$weight)
-clustqual4$stats
-clustqual4$ASW
-
-#Calcul meilleur nombre cluster selon les différentes méthodes entre 1 et 20
-wardRange <- as.clustrange(wardCluster, diss = dissim, weights = df_35$weight, ncluster = 20)
-summary(wardRange, max.rank = 2)
-plot(wardRange, stat = c("ASW", "HG", "PBC","HC"), norm = "zscore")
-
-
-# Version avec librairie utilisée dans la thèse de Studer + plusieurs mesures + plusieures algo
-
 library(WeightedCluster)
 
 # Matrice de coûts constants (arbitraire)
@@ -407,33 +381,47 @@ disOMtr <- seqdist(df_35.seq, method="OMstran", otto=0.1, sm=couts, indel=1)
 disNMSmst <- seqdist(df_35.seq, method="NMSMST", kweights=22, tpow=1)
 # Timing/Positionnement
 disham <- seqdist(df_35.seq, method="HAM", sm=couts)
+# IDK
+disDHD <- seqdist(df_35.seq, method="DHD", sm=NULL)
 
 
-
+# Fonctions : clustering selon 3 méthodes au choix (CAH, PAM, combinaison)
 clusterForMethodAndDist <- function(method, distance, k) {
   if (method == "PAM") {
-    cluster <- wcKMedoids(distance, k = k, weights = df_35$weight)
-
+    cluster <- wcKMedoids(distance, k = k, weights = df_35$poidsi)
     treeCluster <- cluster$clustering
-    quality <- wcClusterQuality(distance, treeCluster, weights = df_35$weight)
+    quality <- wcClusterQuality(distance, treeCluster, weights = df_35$poidsi)
     stats <- quality$stats
     
     return(list(cluster=cluster, stats=stats))
   }
-  else if (method == "H") {
-    cluster <- hclust(as.dist(distance), method = "ward.D", members = df_35$weight)
-    range <- as.clustrange(cluster, diss = distance, weights = df_35$weight, ncluster = k)
+  else if (method == "CAH") {
+    cluster <- hclust(as.dist(distance), method = "ward.D", members = df_35$poidsi)
+    range <- as.clustrange(cluster, diss = distance, weights = df_35$poidsi, ncluster = k)
     tree <- as.seqtree(cluster, seqdata = df_35.seq, diss = distance, ncluster = k)
     treeCluster <- cutree(cluster, k = k)
-    quality <- wcClusterQuality(distance, treeCluster, weights = df_35$weight)
+    quality <- wcClusterQuality(distance, treeCluster, weights = df_35$poidsi)
     stats <- quality$stats
     
     return(list(cluster=cluster, stats=stats, tree=tree, cutree=treeCluster))
   }
+  else if (method == "CAHPAM") {
+    CAHcluster <- hclust(as.dist(distance), method = "ward.D", members = df_35$weight)
+    cluster <- wcKMedoids(distance, k = k, weights = df_35$poidsi, initialclust = CAHcluster)
+    treeCluster <- cluster$clustering
+    quality <- wcClusterQuality(distance, treeCluster, weights = df_35$poidsi)
+    stats <- quality$stats
+    
+    return(list(cluster=cluster, stats=stats))
+  }
   else {
-    stop("La méthode n'est pas reconnue, utiliser 'PAM' ou 'H'.")
+    stop("La méthode n'est pas reconnue, utiliser 'PAM' ou 'CAH' ou 'CAHPAM'.")
   }
 }
+
+result <- clusterForMethodAndDist(method="CAH", distance=disDHD, k=6)
+cluster <- result$cutree
+seqdplot(df_35.seq, group = cluster, border = NA)
 
 ##################
 # Visulisation des stats de qualités des différentes distances
@@ -444,14 +432,14 @@ range_names <- c("Optimal Matching", "OM Freq", "OM Transit", "NMSmst", "Hamming
 
 # 1) Clustering hiérarchique
 for (distance in list(disOMfreq, disOMtr, disNMSmst, disham)) {
-  h_clust <- hclust(as.dist(distance), method = "ward.D", members = df_35$weight)
+  h_clust <- hclust(as.dist(distance), method = "ward.D", members = df_35$poidsi)
   ranges_hierarchical[[length(ranges_hierarchical) + 1]] <-
     as.clustrange(h_clust, diss = distance, weights = df_35$weight, ncluster = 10)
 }
 
 # 2) K-médoïdes
-pam_range <- wcKMedRange(disOM, kvals = 2:10, weights = df_35$weight)
-pamOM <- wcKMedoids(disOM, k = 10, weights = df_35$weight)
+pam_range <- wcKMedRange(disOM, kvals = 2:10, weights = df_35$poidsi)
+pamOM <- wcKMedoids(disOM, k = 10, weights = df_35$poidsi)
 pam_range_10 <- subset(pam_range, k = 10)
 ranges_pam <- as.clustrange(pam_range, diss = disOM, ncluster = 10)
 ranges_pam <- as.clustrange(pam_range_10, diss = disOM, ncluster = 10)
