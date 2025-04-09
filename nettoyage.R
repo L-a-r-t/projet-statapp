@@ -14,7 +14,7 @@ library(tidyr)
 
 
 # Recodage p_gactiv
-trajpro <- trajpro %>% mutate(p_gactiv2 = case_when(
+trajpro <- trajpro %>% mutate(p_gactiv = case_when(
   p_gactiv == 1 ~ 1,
   p_gactiv == 2 ~ 2,
   p_gactiv == 3 ~ 3,
@@ -23,6 +23,7 @@ trajpro <- trajpro %>% mutate(p_gactiv2 = case_when(
   (p_gactiv == 6 | p_gactiv == 7) ~ 6,
   TRUE ~ NA_real_
 ))
+
 
 # Recodage origine_tous_g2
 indiv <- indiv %>% mutate(origine_tous_g2bis = case_when(
