@@ -8,22 +8,20 @@ library(dplyr)
 library(tidyr)
 
 
-
 ##################
 # Recodage de variables
 ##################
 
 
-
 # Recodage p_gactiv
-indiv <- indiv %>% mutate(p_gactiv2 = case_when(
-  p_gactiv == 1 ~ "sal", # Salari.ée
-  p_gactiv == 2 ~ "ind", # à son compte ou indépendant
-  p_gactiv == 3 ~ "cho", # chômage
-  p_gactiv == 4 ~ "fc", # études ou stage non rémunéré (formation continue)
-  p_gactiv == 5 ~  "auf", # femme ou homme au foyer
-  p_gactiv == 6 | p_gactiv == 7 ~ "ins", # Autres
-  TRUE ~ NA_character_
+trajpro <- trajpro %>% mutate(p_gactiv2 = case_when(
+  p_gactiv == 1 ~ 1,
+  p_gactiv == 2 ~ 2,
+  p_gactiv == 3 ~ 3,
+  p_gactiv == 4 ~ 4,
+  p_gactiv == 5 ~ 5,
+  (p_gactiv == 6 | p_gactiv == 7) ~ 6,
+  TRUE ~ NA_real_
 ))
 
 # Recodage origine_tous_g2
@@ -303,12 +301,12 @@ get_distribution_for_age <- function(seq, age) {
 # Définition de notre objet séquence
 ##################
 
-df_35.labels <- c("Salariat", "Indépendant", "Chômage", "Etudes", "Au foyer", "Autres", "Variable")
-df_35.scode <- c(1, 2, 3, 4, 5, 6, 7)
+df_35.labels <- c("Salariat", "Indépendant", "Chômage", "Etudes", "Au foyer", "Instabilité")
+df_35.scode <- c(1, 2, 3, 4, 5, 6)
 
 df_35.seq <- seqdef(df_35, 2:23, states = df_35.scode, labels = df_35.labels, weights=df_35$poidsi)
 
-get_distribution_for_age(df_35.seq, 30)
+get_distribution_for_age(df_35.seq, 15)
 
 
 
@@ -336,7 +334,7 @@ Turbulence <- seqST(df_35.seq)
 summary(Turbulence) 
 hist(Turbulence, col = "cyan", main = "Sequence turbulence")
 
-#DF séquences par origine
+#DF séquences par origine (A MODIFIER)
 df_35_as <- df_35 %>% filter(origine_tous_g2bis == 33)
 df_35_mag <- df_35 %>% filter(origine_tous_g2bis == 66)
 df_35_maj <- df_35 %>% filter(origine_tous_g2bis == 1)
