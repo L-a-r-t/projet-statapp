@@ -7,6 +7,54 @@ library(TraMineR)
 library(dplyr)
 library(tidyr)
 
+
+
+##################
+# Recodage de variables
+##################
+
+
+
+# Recodage p_gactiv
+indiv <- indiv %>% mutate(p_gactiv2 = case_when(
+  p_gactiv == 1 ~ "sal", # Salari.ée
+  p_gactiv == 2 ~ "ind", # à son compte ou indépendant
+  p_gactiv == 3 ~ "cho", # chômage
+  p_gactiv == 4 ~ "fc", # études ou stage non rémunéré (formation continue)
+  p_gactiv == 5 ~  "auf", # femme ou homme au foyer
+  p_gactiv == 6 | p_gactiv == 7 ~ "ins", # Autres
+  TRUE ~ NA_character_
+))
+
+# Recodage origine_tous_g2
+indiv <- indiv %>% mutate(origine_tous_g2bis = case_when(
+  (origine_tous_g2 == 0 | origine_tous_g2 == 10 | origine_tous_g2 == 11) ~ 1, # population sans ascendance migratoire directe
+  (origine_tous_g2 == 20) ~ 20, # Originaires d'outre-mer
+  (origine_tous_g2 == 22) ~ 22, # Descendant.es d'originaires d'outre-mer
+  (origine_tous_g2 == 30 | origine_tous_g2 == 40) ~ 30, # Immigré.es du Maghreb
+  (origine_tous_g2 == 33 |origine_tous_g2 == 44) ~ 33, # Descendant.es d'immigré.es originaires du Maghreb
+  (origine_tous_g2 == 50 | origine_tous_g2 == 60 | origine_tous_g2 == 70) ~ 50, # Immigré.es originaires d'Afrique Subsaharienne
+  (origine_tous_g2 == 55 | origine_tous_g2 == 66 | origine_tous_g2 == 77) ~ 55, # Descendant.es d'immigré.es originaires d'Afrique Subsaharienne
+  (origine_tous_g2 == 90) ~ 60, # Immigré.es originaires de Turquie et du Moyen-Orient
+  (origine_tous_g2 == 99) ~ 66, # Descendant.es d'immigré.es originaires de Turquie et du Moyen-Orient
+  (origine_tous_g2 == 80 | origine_tous_g2 == 100 | origine_tous_g2 == 110) ~ 70, # Immigré.es originaires du reste de l'Asie
+  (origine_tous_g2 == 88 | origine_tous_g2 == 111) ~ 77, # Descendant.es d'immigré.es originaires de reste de l'Asie
+  (origine_tous_g2 == 120 | origine_tous_g2 == 130) ~ 80, # Immigré.es originaires d'Europe du Sud
+  (origine_tous_g2 == 121 | origine_tous_g2 == 131) ~ 88, # Descendant.es d'originaires d'immigré.es d'Europe du Sud
+  (origine_tous_g2== 140 | origine_tous_g2 == 150) ~ 90, # Immigré.es originaires du reste de l'Europe
+  (origine_tous_g2 == 141 | origine_tous_g2 == 151) ~ 99, # Descendant.es d'immigré.es originaires du reste de l'Europe
+  (origine_tous_g2 == 160 ~ 100), # Immigré.es d'autres pays
+  (origine_tous_g2 == 161 ~ 111), # Descendant.es d'immigré.es d'autres pays
+  TRUE ~ NA_real_
+))
+
+
+
+##################
+# Restructuration du DataFrame
+##################
+
+
 # Gestions problème de période
 trajpro$debproan <- as.integer(trajpro$debproan)  
 trajpro$p_gan <- as.integer(trajpro$p_gan)  
@@ -103,27 +151,6 @@ print(unique_lengths_2)
 
 trajpro_wide_modifie_clean <- trajpro_wide_modifie_clean %>% select(-c("0":"13"))
 
-
-#### Recodage origine_tous_g2
-indiv <- indiv %>% mutate(origine_tous_g2bis = case_when(
-  (origine_tous_g2 == 0 | origine_tous_g2 == 10 | origine_tous_g2 == 11) ~ 1, # population sans ascendance migratoire directe
-  (origine_tous_g2 == 20) ~ 20, # Originaires d'outre-mer
-  (origine_tous_g2 == 22) ~ 22, # Descendant.es d'originaires d'outre-mer
-  (origine_tous_g2 == 30 | origine_tous_g2 == 40) ~ 30, # Immigré.es du Maghreb
-  (origine_tous_g2 == 33 |origine_tous_g2 == 44) ~ 33, # Descendant.es d'immigré.es originaires du Maghreb
-  (origine_tous_g2 == 50 | origine_tous_g2 == 60 | origine_tous_g2 == 70) ~ 50, # Immigré.es originaires d'Afrique Subsaharienne
-  (origine_tous_g2 == 55 | origine_tous_g2 == 66 | origine_tous_g2 == 77) ~ 55, # Descendant.es d'immigré.es originaires d'Afrique Subsaharienne
-  (origine_tous_g2 == 80 |  origine_tous_g2 == 90 | origine_tous_g2 == 100 |  origine_tous_g2 == 110) ~ 60, # Immigré.es originaires d'Asie et du Moyen-Orient
-  (origine_tous_g2 == 88 | origine_tous_g2 == 99 | origine_tous_g2 == 111) ~ 66, # Descendant.es d'immigré.es originaires d'Asie et du Moyen-Orient
-  (origine_tous_g2 == 120 | origine_tous_g2 == 130) ~ 70, # Immigré.es originaires d'Europe du Sud
-  (origine_tous_g2 == 121 | origine_tous_g2 == 131) ~ 77, # Descendant.es d'originaires d'immigré.es d'Europe du Sud
-  (origine_tous_g2== 140 | origine_tous_g2 == 150) ~ 80, # Immigré.es originaires du reste de l'Europe
-  (origine_tous_g2 == 141 | origine_tous_g2 == 151) ~ 88, # Descendant.es d'immigré.es originaires du reste de l'Europe
-  (origine_tous_g2 == 160 ~ 90), # Immigré.es d'autres pays
-  (origine_tous_g2 == 161 ~99), # Descendant.es d'immigré.es d'autres pays
-  TRUE ~ NA_real_
-))
-
 df<-trajpro_wide_modifie_clean
 
 df <- merge(trajpro_wide_modifie_clean, indiv[, c("ident", "group1", "anaise", "finetu_an", "finetu_age", "f_finetg", "f_finetuag", "f_finetu_drap", "origine_tous_g2bis", "sexee", "andebtr", "duretu", "poidsi")], by = "ident", all.x = TRUE)
@@ -134,9 +161,16 @@ df <- df %>%
   mutate(agedebtr = andebtr - anaise)
 
 
+
+##################
+# Statistiques descriptives introductive (sur toute la population de notre df, sans longueur de carrière imposée)
+##################
+
+
+
 # Age moyen du premier emploi et durée moyenne des études selon groupe d'origine
 tableau_statistiques <- df %>%
-  filter(origine_tous_g2bis %in% c(33, 55, 66, 77, 88, 1)) %>%
+  filter(origine_tous_g2bis %in% c(33, 55, 66, 77, 88, 99, 1)) %>%
   filter(!duretu %in% c(7777, 8888)) %>%  # Exclure les individus dont duretu est 7777 ou 8888
   group_by(origine_tous_g2bis) %>%
   summarise(
@@ -148,20 +182,28 @@ tableau_statistiques <- tableau_statistiques %>%
   mutate(origine_tous_g2bis = case_when(
     origine_tous_g2bis == 33 ~ "Maghreb",
     origine_tous_g2bis == 55 ~ "Afrique Subsaharienne",
-    origine_tous_g2bis == 66 ~ "Asie",
-    origine_tous_g2bis == 77 ~ "Europe du Sud",
-    origine_tous_g2bis == 88 ~ "Reste de l'Europe",
+    origine_tous_g2bis == 66 ~ "Turquie et Moyen-Orient",
+    origine_tous_g2bis == 77 ~ "Reste de l'Asie",
+    origine_tous_g2bis == 88 ~ "Europe du Sud",
+    origine_tous_g2bis == 99 ~ "Reste de l'Europe",
     origine_tous_g2bis == 1  ~ "Population sans ascendance migratoire"
   ))
 
 
 tableau_statistiques <- tableau_statistiques %>%
   rename(
-    "Origine des parents (parmis G2)" = origine_tous_g2bis
+    "Origine des parents" = origine_tous_g2bis
   )
 
 # Afficher le tableau 
 print(tableau_statistiques)
+
+
+
+##################
+# Création d'un dataframe avec seulement les carrières assez longues
+##################
+
 
 # On perd environ 300 personnes qui n'ont pas voulu déclarer la date à laquelle iels ont fini leurs études...
 df <- df %>%
@@ -232,7 +274,7 @@ ggplot(df_35, aes(x = origine_tous_g2bis)) +
   geom_text(stat = "count", aes(label = ..count..), vjust = -0.1, size = 4, angle = 70) +
   labs(
     title = "Distribution des Modalités de la Variable origine_tous_g2",
-    x = "Modalités de origine_tous_g2",
+    x = "Origine migratoires des parents",
     y = "Nombre d'Observations"
   ) +
   theme_minimal() +
@@ -428,7 +470,7 @@ seqdplot(df_35.seq, group = cluster, border = NA)
 ##################
 
 ranges_hierarchical <- list()
-range_names <- c("Optimal Matching", "OM Freq", "OM Transit", "NMSmst", "Hamming")
+range_names <- c("Optimal Matching", "OM Freq", "OM Transit", "NMSmst", "Hamming", "Hamming Dynamique")
 
 # 1) Clustering hiérarchique
 for (distance in list(disOMfreq, disOMtr, disNMSmst, disham)) {
