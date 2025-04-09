@@ -335,12 +335,13 @@ summary(Turbulence)
 hist(Turbulence, col = "cyan", main = "Sequence turbulence")
 
 #DF séquences par origine (A MODIFIER)
-df_35_as <- df_35 %>% filter(origine_tous_g2bis == 33)
-df_35_mag <- df_35 %>% filter(origine_tous_g2bis == 66)
 df_35_maj <- df_35 %>% filter(origine_tous_g2bis == 1)
+df_35_mag <- df_35 %>% filter(origine_tous_g2bis == 33)
 df_35_af <- df_35 %>% filter(origine_tous_g2bis == 55)
-df_35_eurr <- df_35 %>% filter(origine_tous_g2bis == 77)
+df_35_mo <- df_35 %>% filter(origine_tous_g2bis == 66)
+df_35_as <- df_35 %>% filter(origine_tous_g2bis == 77)
 df_35_eurs <- df_35 %>% filter(origine_tous_g2bis == 88)
+df_35_eurr <- df_35 %>% filter(origine_tous_g2bis == 99)
 
 #Séquences par origine
 df_35_mag.seq <- seqdef(df_35_mag, 2:23, states = df_35.scode, labels = df_35.labels, weights=df_35_mag$poidsi)
@@ -349,26 +350,28 @@ df_35_maj.seq <- seqdef(df_35_maj, 2:23, states = df_35.scode, labels = df_35.la
 df_35_af.seq <- seqdef(df_35_af, 2:23, states = df_35.scode, labels = df_35.labels, weights=df_35_af$poidsi)
 df_35_eurr.seq <- seqdef(df_35_eurr, 2:23, states = df_35.scode, labels = df_35.labels, weights=df_35_eurr$poidsi)
 df_35_eurs.seq <- seqdef(df_35_eurs, 2:23, states = df_35.scode, labels = df_35.labels, weights=df_35_eurs$poidsi)
+df_35_mo.seq <- seqdef(df_35_mo, 2:23, states = df_35.scode, labels = df_35.labels, weights=df_35_mo$poidsi)
 
 # Plot de comparaison
 png("Chronogrammes comparés.png", width = 2200, height = 2700, res = 300)
 
 par(mfrow = c(4, 2), mar = c(4, 4, 2, 2), oma = c(0, 0, 3, 0))  
 
+seqdplot(df_35_maj.seq, withlegend = F, border = NA, main = "Population majoritaire")
 seqdplot(df_35_mag.seq, withlegend = F, border = NA, main = "Descendants d'immigrés - Maghreb")
-seqdplot(df_35_as.seq, withlegend = F, border = NA, main = "Descendants d'immigrés - Asie")
 seqdplot(df_35_af.seq, withlegend = F, border = NA, main = "Descendants d'immigrés - Afrique subsaharienne")
 seqdplot(df_35_eurs.seq, withlegend = F, border = NA, main = "Descendants d'immigrés - Europe du sud")
 seqdplot(df_35_eurr.seq, withlegend = F, border = NA, main = "Descendants d'immigrés - Reste de l'Europe")
-seqdplot(df_35_maj.seq, withlegend = F, border = NA, main = "Population majoritaire")
+seqdplot(df_35_as.seq, withlegend = F, border = NA, main = "Descendants d'immigrés - Reste de l'Asie")
+seqdplot(df_35_eurr.seq, withlegend = F, border = NA, main = "Descendants d'immigrés - Moyen Orient et Turquie")
 
 seqlegend(df_35.seq, ncol = 2, position = "top", cex=1.4)
 
 dev.off()
 
 #Plot par genre et comp entre asie et pop maj (asie car assez d'enquêtés sinon techniques)
-df_35_h_as <- df_35 %>% filter(sexee == 1 & origine_tous_g2bis == 33)
-df_35_f_as <- df_35 %>% filter(sexee == 2 & origine_tous_g2bis == 33)
+df_35_h_as <- df_35 %>% filter(sexee == 1 & origine_tous_g2bis == 77)
+df_35_f_as <- df_35 %>% filter(sexee == 2 & origine_tous_g2bis == 77)
 df_35_h_maj <- df_35 %>% filter(sexee == 1 & origine_tous_g2bis == 1)
 df_35_f_maj <- df_35 %>% filter(sexee == 2 & origine_tous_g2bis == 1)
 df_35_h_as.seq <- seqdef(df_35_h_as, 2:23, states = df_35.scode, labels = df_35.labels, weights=df_35_h_as$poidsi)
@@ -396,7 +399,6 @@ seqmsplot(df_35.seq, with.legend = FALSE, border = NA)
 
 # Temps moyen passé dans chaque état
 seqmtplot(df_35.seq, with.legend = FALSE)
-
 
 
 
