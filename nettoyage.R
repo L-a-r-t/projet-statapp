@@ -152,7 +152,7 @@ trajpro_wide_modifie_clean <- trajpro_wide_modifie_clean %>% select(-c("0":"13")
 
 df<-trajpro_wide_modifie_clean
 
-df <- merge(trajpro_wide_modifie_clean, indiv[, c("ident", "group1", "anaise", "finetu_an", "finetu_age", "f_finetg", "f_finetuag", "f_finetu_drap", "origine_tous_g2bis", "sexee", "andebtr", "duretu", "poidsi")], by = "ident", all.x = TRUE)
+df <- merge(trajpro_wide_modifie_clean, indiv[, c("ident", "group1", "anaise", "finetu_an", "finetu_age", "f_finetg", "f_finetuag", "f_finetu_drap", "origine_tous_g2bis", "sexee", "andebtr", "duretu", "poidsi", "a_montan_drap", "a_montan" )], by = "ident", all.x = TRUE)
 head(df)
 
 # Age au premier travail
@@ -275,6 +275,19 @@ ggplot(df_35, aes(x = origine_tous_g2bis)) +
     title = "Distribution des Modalités de la Variable origine_tous_g2",
     x = "Origine migratoires des parents",
     y = "Nombre d'Observations"
+  ) +
+  scale_x_discrete(
+    labels = c(
+      "1" = "Pop Maj",
+      "22" = "Outre Mer",
+      "33" = "Mag",
+      "55" = "AfS",
+      "66" = "T&MO",
+      "77" = "As",
+      "88" = "EurS",
+      "99" = "EurR",
+      "111" = "Autre"
+    )
   ) +
   theme_minimal() +
   theme(axis.text.x = element_text(angle = 45, hjust = 1))
@@ -462,7 +475,7 @@ clusterForMethodAndDist <- function(method, distance, k) {
   }
 }
 
-result <- clusterForMethodAndDist(method="CAH", distance=disDHD, k=6)
+result <- clusterForMethodAndDist(method="PAM", distance=disOM, k=6)
 cluster <- result$cutree
 seqdplot(df_35.seq, group = cluster, border = NA)
 
@@ -874,3 +887,260 @@ df_40.seq <- seqdef(df_40, 2:28, states = df_35.scode, labels = df_35.labels)
 
 #Entropie
 seqHtplot(df_40.seq)
+
+
+
+
+
+##################
+# Description clusters avec PAMOM
+##################
+
+
+
+
+# PAM
+result <- clusterForMethodAndDist(method="PAM", distance=disOM, k=6)
+cluster_PAM_codes <- result$cluster$clustering
+cluster_PAM_OM <- factor(cluster_PAM_codes,
+                         levels = c(1, 7798, 8533, 8964, 9020, 9065),
+                         labels = c("Ecole - Emploi", "Au Foyer", "Indépendant",  "Ecole - Emploi Bis","Instabilité", "Etudes - Emploi"))
+seqdplot(df_35.seq, group = cluster_PAM_OM, border = NA)
+levels(cluster_PAM_OM)
+
+print(df_35.seq[unique(cluster_PAM_codes), ], format = "SPS")
+
+
+# On ajoute l'appartenance aux cluster comme un variable de df 35
+df_35$cluster_PAM_OM <- cluster_PAM_OM
+
+# Est ce que les cluster Ecole-Emploi (bis) sont très différents en terme de composition d'origine 
+
+# S'assurer que les variables sont des facteurs avec labels explicites
+df_35$origine_tous_g2bis <- factor(df_35$origine_tous_g2bis,
+                                   levels = c(1, 22, 33, 55, 66, 77, 88, 99, 111),
+                                   labels = c("Maj", "Outre-Mer", "Maghreb", "Afrique", "Turquie&Moyen-Orient", "Asie", "Europe Sud", "Reste de l'Europe", "Autres"))
+
+# Créer le tableau croisé pondéré sous forme de table (type matrix)
+tableau_pourcentages <- prop.table(
+  xtabs(poidsi ~ cluster_PAM_OM + origine_tous_g2bis, data = df_35),
+  margin = 1
+)
+
+# Arrondir les valeurs
+tableau_pourcentages <- round(tableau_pourcentages * 100, 1)
+
+# Affichage clair
+print(tableau_pourcentages)
+
+
+tableau_pourcentages_2 <- prop.table(
+  xtabs(poidsi ~ cluster_PAM_OM + anaise, data = df_35),
+  margin = 1
+)
+
+# Arrondir les valeurs
+tableau_pourcentages_2 <- round(tableau_pourcentages_2 * 100, 1)
+
+# Affichage clair
+print(tableau_pourcentages_2)
+
+
+compute_cluster_distances_summary <- function(pourcentage_table) {
+  # Vérifie que les lignes sont bien des clusters
+  cluster_names <- rownames(pourcentage_table)
+  n <- nrow(pourcentage_table)
+  
+  # Matrice vide pour distances
+  distance_matrix <- matrix(0, nrow = n, ncol = n,
+                            dimnames = list(cluster_names, cluster_names))
+  
+  # Calcul des distances euclidiennes
+  for (i in 1:n) {
+    for (j in 1:n) {
+      distance_matrix[i, j] <- sqrt(sum((pourcentage_table[i, ] - pourcentage_table[j, ])^2))
+    }
+  }
+  
+  # Extraire uniquement les distances hors diagonale (i ≠ j)
+  off_diag_values <- distance_matrix[lower.tri(distance_matrix)]
+  
+  # Résumé statistique
+  distance_summary <- list(
+    matrix = round(distance_matrix, 3),
+    min = round(min(off_diag_values), 3),
+    max = round(max(off_diag_values), 3),
+    mean = round(mean(off_diag_values), 3),
+    median = round(median(off_diag_values), 3)
+  )
+  
+  return(distance_summary)
+}
+
+res <- compute_cluster_distances_summary(tableau_pourcentages)
+
+# Affichage
+print("Matrice des distances :")
+print(res$matrix)
+
+cat("\nDistance minimale :", res$min, "\n")
+cat("Distance maximale :", res$max, "\n")
+cat("Distance moyenne  :", res$mean, "\n")
+cat("Distance médiane  :", res$median, "\n")
+
+res2 <- compute_cluster_distances_summary(tableau_pourcentages_2)
+
+# Affichage
+print("Matrice des distances :")
+print(res2$matrix)
+
+cat("\nDistance minimale :", res2$min, "\n")
+cat("Distance maximale :", res2$max, "\n")
+cat("Distance moyenne  :", res2$mean, "\n")
+cat("Distance médiane  :", res2$median, "\n")
+
+
+# Revenu du ménage moyen dans chaque cluster
+
+# Filtrage des valeurs valides et calcul du salaire moyen pondéré
+df_salaires <- df_35 %>%
+  filter(a_montan_drap == 1) %>%
+  group_by(cluster_PAM_OM) %>%
+  summarise(salaire_moyen = weighted.mean(a_montan, poidsi, na.rm = TRUE))
+
+# S'assurer que 'salaire_moyen' est de type numérique (float)
+df_salaires$salaire_moyen <- as.numeric(df_salaires$salaire_moyen)
+
+# Affichage du tableau
+print(df_salaires)
+
+# Création d'une matrice vide pour les écarts
+n_clusters <- nrow(df_salaires)
+ecarts_abs <- matrix(NA, nrow = n_clusters, ncol = n_clusters)
+
+# Calcul des écarts pour chaque paire de clusters
+for (i in 1:n_clusters) {
+  for (j in 1:n_clusters) {
+    if (i != j) {
+      ecarts_abs[i, j] <- abs(df_salaires$salaire_moyen[i] - df_salaires$salaire_moyen[j])
+    }
+  }
+}
+
+# Conversion en dataframe pour une meilleure lisibilité
+matrice_ecarts_abs <- as.data.frame(ecarts_abs)
+
+# Assigner les noms des clusters comme noms de lignes et colonnes
+rownames(matrice_ecarts_abs) <- df_salaires$cluster_PAM_OM
+colnames(matrice_ecarts_abs) <- df_salaires$cluster_PAM_OM
+
+# Affichage des matrices d'écarts
+print("Matrice des écarts absolus :")
+print(matrice_ecarts_abs)
+
+# Calcul des statistiques sur les écarts absolus
+ecarts_abs_vector <- matrice_ecarts_abs[!is.na(matrice_ecarts_abs)]  # Supprimer les NA pour ne garder que les écarts calculés
+
+# Calculer min, max, moyenne et médiane
+min_ecart <- min(ecarts_abs_vector)
+max_ecart <- max(ecarts_abs_vector)
+moyenne_ecart <- mean(ecarts_abs_vector)
+mediane_ecart <- median(ecarts_abs_vector)
+
+# Affichage des résultats
+cat("Écart minimum : ", min_ecart, "\n")
+cat("Écart maximum : ", max_ecart, "\n")
+cat("Écart moyen : ", moyenne_ecart, "\n")
+cat("Écart médian : ", mediane_ecart, "\n")
+
+
+cluster_fusion_PAM_codes <- cluster_PAM_codes
+cluster_fusion_PAM_codes[cluster_PAM_codes %in% c(8964)] <- 1  # On fusionne deux clusters très similaires
+seqdplot(df_35.seq, group = cluster_fusion_PAM_codes, border = NA)
+
+# Qualité pour clusterisation PAM avec fusion 
+
+sil <- silhouette(cluster_fusion_PAM_codes, dist = disOM)
+sil_PAM_OM <- as.data.frame(sil)
+asw_PAM_fusion_OM <- sil_PAM_OM %>%
+  group_by(cluster) %>%
+  summarise(ASW = mean(sil_width)) %>%
+  arrange(desc(ASW))
+View(asw_PAM_fusion_OM)
+
+  
+# Affiche les trajectoires médoides
+
+print(df_35.seq[unique(cluster_fusion_PAM_codes), ], format = "SPS")
+
+# Créer un dataframe à partir des séquences
+seq_data <- data.frame(
+  ident = c(1, 9065, 8533, 7798 , 9020),
+  "14" = c(4, 4, 4, 4, 4),
+  "15" = c(4, 4, 4, 4, 4),
+  "16" = c(4, 4, 4, 4, 4),
+  "17" = c(4, 4, 4, 4, 4),
+  "18" = c(4, 4, 4, 1, 4),
+  "19" = c(4, 4, 4, 1, 6),
+  "20" = c(4, 4, 4, 5, 6),
+  "21" = c(4, 4, 2, 5, 6),
+  "22" = c(1, 4, 2, 5, 6),
+  "23" = c(1, 4, 2, 5, 6),
+  "24" = c(1, 4, 2, 5, 6),
+  "25" = c(1, 1, 2, 5, 6),
+  "26" = c(1, 1, 2, 5, 6),
+  "27" = c(1, 1, 2, 5, 6),
+  "28" = c(1, 1, 2, 5, 6),
+  "29" = c(1, 1, 2, 5, 6),
+  "30" = c(1, 1, 2, 5, 6),
+  "31" = c(1, 1, 2, 5, 6),
+  "32" = c(1, 1, 2, 5, 6),
+  "33" = c(1, 1, 1, 1, 1),
+  "34" = c(1, 1, 1, 1, 1),
+  "35" = c(1, 1, 1, 1, 1)
+)
+
+colnames(seq_data)[2:ncol(seq_data)] <- as.character(14:35)
+
+seq_data.labels <- c("Salariat", "Indépendant", "Etudes", "Au foyer", "Instabilité")
+seq_data.scode <- c(1, 2, 4, 5, 6)
+seq_data.seq <- seqdef(seq_data, 2:23, states = seq_data.scode, labels = seq_data.labels)
+
+# Load the package
+library(RColorBrewer)
+
+# Display all colors in the Accent palette (up to 8 colors)
+accent_colors <- brewer.pal(n = 8, name = "Accent")
+
+# Print the color hex codes
+print(accent_colors)
+
+col_states <- c("#7FC97F", "#BEAED4", "#FFFF99", "#386CB0", "#F0027F")
+
+png("Trajectoires médoïdes.png", width = 2200, height = 1700, res = 300)
+seqiplot(seq_data.seq, 
+         with.legend = TRUE, 
+         cex.legend = 0.85,
+         border = NA,
+         cpal=col_states)
+dev.off()
+
+# Nommer les clusters
+
+
+cluster_fusion_PAM_OM <- factor(cluster_fusion_PAM_codes,
+                                  levels = c(1, 7798, 8533, 9020, 9065),
+                                  labels = c("Accès rapide et stable à l’emploi", "Allers-retours entre emploi et foyer", "Travail indépendant et emploi salarié", "Trajectoire marquée par une instabilité durable", "Insertion tardive mais stable après des études longues"))
+
+png("Chronogrammes typologie.png", width = 2200, height = 2300, res = 300)
+seqdplot(df_35.seq, group = cluster_fusion_PAM_OM, border = NA)
+dev.off()
+
+png("Index-plot typologie.png", width = 2200, height = 2300, res = 300)
+silOM <- wcSilhouetteObs(disOM, cluster_fusion_PAM_OM, weights = df_35$weight)
+seqIplot(df_35.seq, group = cluster_fusion_PAM_OM, sortv = silOM)
+dev.off()
+
+# On ajoute l'appartenance aux cluster comme un variable de df 35
+df_35$cluster_fusion_PAM_OM <- cluster_fusion_PAM_OM
+
