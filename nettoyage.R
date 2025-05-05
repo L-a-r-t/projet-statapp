@@ -1,5 +1,5 @@
 #Chargement des tables
-trajpro <- read.csv("trajpro.csv", sep = ";", header = TRUE)
+trajpro <- read.csv("/work/projet-statapp/trajpro.csv", sep = ";")
 indiv <- read.csv("indiv.csv", sep = ";", header = TRUE)
 
 #Librairies
@@ -152,7 +152,7 @@ trajpro_wide_modifie_clean <- trajpro_wide_modifie_clean %>% select(-c("0":"13")
 
 df<-trajpro_wide_modifie_clean
 
-df <- merge(trajpro_wide_modifie_clean, indiv[, c("ident", "group1", "anaise", "finetu_an", "finetu_age", "f_finetg", "f_finetuag", "f_finetu_drap", "origine_tous_g2bis", "sexee", "andebtr", "duretu", "poidsi", "a_montan_drap", "a_montan" )], by = "ident", all.x = TRUE)
+df <- merge(trajpro_wide_modifie_clean, indiv[, c("ident", "group1", "anaise", "finetu_an", "finetu_age", "f_finetg", "f_finetuag", "f_finetu_drap", "origine_tous_g2bis", "sexee", "andebtr", "duretu", "poidsi", "a_montan_drap", "a_montan", "pcs_pere", "t_situm" )], by = "ident", all.x = TRUE)
 head(df)
 
 # Age au premier travail
@@ -1053,6 +1053,7 @@ cat("Écart maximum : ", max_ecart, "\n")
 cat("Écart moyen : ", moyenne_ecart, "\n")
 cat("Écart médian : ", mediane_ecart, "\n")
 
+# Fusion cluster
 
 cluster_fusion_PAM_codes <- cluster_PAM_codes
 cluster_fusion_PAM_codes[cluster_PAM_codes %in% c(8964)] <- 1  # On fusionne deux clusters très similaires
@@ -1143,4 +1144,39 @@ dev.off()
 
 # On ajoute l'appartenance aux cluster comme un variable de df 35
 df_35$cluster_fusion_PAM_OM <- cluster_fusion_PAM_OM
+
+##################
+# Regression logistiques multinomiales
+##################
+
+library(tidyverse)
+library(labelled)
+library(gtsummary)
+
+# On définit le cluster de base (celui où il y a le plus d'individus)
+df_35$cluster_fusion_PAM_OM <- df_35$cluster_fusion_PAM_OM |> fct_relevel("Accès rapide et stable à l’emploi")
+
+# Modèle 1
+reg <- nnet::multinom(
+  cluster_fusion_PAM_OM ~ origine_tous_g2bis,
+  data = df_35
+)
+
+tbl <- reg |> tbl_regression(exponentiate = TRUE)
+
+theme_gtsummary_language("fr", decimal.mark = ",")
+
+tbl |> guideR::style_grouped_tbl()
+
+# Modèle 2
+reg2 <- nnet::multinom(
+  cluster_fusion_PAM_OM ~ origine_tous_g2bis + sexee,
+  data = df_35
+)
+
+tbl2 <- reg2 |> tbl_regression(exponentiate = TRUE)
+
+theme_gtsummary_language("fr", decimal.mark = ",")
+
+tbl2 |> guideR::style_grouped_tbl()
 
