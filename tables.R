@@ -85,116 +85,69 @@ get_cluster_stats <- function(data, poids_var = "poidsi", label) {
 
 
 
-
-
 ##### On passe à la constitution des df à propremement parler
 # Origines
-maj_clusters <- wtd.table(df_35_maj$cluster_fusion_PAM_OM, weights = df_35_maj$poidsi) %>%
-  prop.table() %>%
-  `*`(100) %>%
-  as.data.frame() %>%
-  rename(PopMaj = Freq) %>%
-  rename(cluster_fusion_PAM_OM = Var1)
+liste_df_or <- list(
+  "Global" = df_35_bis,
+  "Population majoritaire" = df_35_maj,
+  "Outre-Mer"   = df_35_om,
+  "Maghreb"  = df_35_mag,
+  "Afrique subsaharienne" = df_35_afr,
+  "Turquie&Moyen-Orient"  = df_35_tur,
+  "Reste de l'Asie" = df_35_asi,
+  "Europe" = df_35_eur
+)
 
-om_clusters <- df_35_om %>%
-  with(wtd.table(df_35_om$cluster_fusion_PAM_OM, weights = df_35_om$poidsi)) %>%
-  prop.table() %>%
-  `*`(100) %>%
-  as.data.frame() %>%
-  rename(OM = Freq) %>%  select(-Var1)
+stats_list_or <- purrr::imap_dfr(liste_df_or, ~ get_cluster_stats(.x, label = .y))
 
-mag_clusters <- df_35_mag %>%
-  with(wtd.table(df_35_mag$cluster_fusion_PAM_OM, weights = df_35_mag$poidsi)) %>%
-  prop.table() %>%
-  `*`(100) %>%
-  as.data.frame() %>%
-  rename(Magh = Freq) %>%  select(-Var1)
+df_n_brut_or <- stats_list_or %>%
+  select(Clusters, Source, n_brut) %>%
+  pivot_wider(names_from = Source, values_from = n_brut)
 
-afr_clusters <- df_35_afr %>%
-  with(wtd.table(df_35_afr$cluster_fusion_PAM_OM, weights = df_35_afr$poidsi)) %>%
-  prop.table() %>%
-  `*`(100) %>%
-  as.data.frame() %>%
-  rename(AfSub = Freq) %>%  select(-Var1)
+df_n_pond_or <- stats_list_or %>%
+  select(Clusters, Source, n_pond) %>%
+  pivot_wider(names_from = Source, values_from = n_pond)
 
-tur_clusters <- df_35_tur %>%
-  with(wtd.table(df_35_tur$cluster_fusion_PAM_OM, weights = df_35_tur$poidsi)) %>%
-  prop.table() %>%
-  `*`(100) %>%
-  as.data.frame() %>%
-  rename(TurqMo = Freq) %>%  select(-Var1)
-
-asi_clusters <- df_35_asi %>%
-  with(wtd.table(df_35_asi$cluster_fusion_PAM_OM, weights = df_35_asi$poidsi)) %>%
-  prop.table() %>%
-  `*`(100) %>%
-  as.data.frame() %>%
-  rename(Asie = Freq) %>%  select(-Var1)
-
-eur_clusters <- df_35_eur %>%
-  with(wtd.table(df_35_eur$cluster_fusion_PAM_OM, weights = df_35_eur$poidsi)) %>%
-  prop.table() %>%
-  `*`(100) %>%
-  as.data.frame() %>%
-  rename(Eur = Freq) %>%  select(-Var1)
-
-global_clusters <- df_35_bis %>%
-  with(wtd.table(df_35_bis$cluster_fusion_PAM_OM, weights = df_35_bis$poidsi)) %>%
-  prop.table() %>%
-  `*`(100) %>%
-  as.data.frame() %>%
-  rename(Global = Freq, Clusters = Var1)
-
-df_croise_ori <- bind_cols(
-  global_clusters,
-  maj_clusters,
-  mag_clusters,
-  afr_clusters,
-  tur_clusters,
-  asi_clusters,
-  eur_clusters
-)  %>% mutate(across(where(is.numeric), ~ round(.x, 1)))
+df_pct_or <- stats_list_or %>%
+  select(Clusters, Source, pct_pond) %>%
+  pivot_wider(names_from = Source, values_from = pct_pond)
 
 
 
 # activité de la mère
-toujours_clusters <- as.data.frame(prop.table(wtd.table(df_35_toujours$cluster_fusion_PAM_OM , weights = df_35_toujours$poidsi)) * 100) %>%
-  as.data.frame() %>%
-  rename(Toujours = Freq)%>% select(-Var1)
+liste_df_acm <- list(
+  "Global" = df_35_bis,
+  "Toujours" = df_35_toujours,
+  "Jamais" =df_35_jamais_taff,
+  "Alterne"=df_35_alterne
+)
 
-jamais_clusters <- df_35_jamais_taff %>%
-  with(wtd.table(df_35_jamais_taff$cluster_fusion_PAM_OM, weights = df_35_jamais_taff$poidsi)) %>%
-  prop.table() %>%
-  `*`(100) %>%
-  as.data.frame() %>%
-  rename(Jamais = Freq) %>%  select(-Var1)
+stats_list_acm <- purrr::imap_dfr(liste_df_acm, ~ get_cluster_stats(.x, label = .y))
 
+df_n_brut_acm <- stats_list_acm %>%
+  select(Clusters, Source, n_brut) %>%
+  pivot_wider(names_from = Source, values_from = n_brut)
 
-alterne_clusters <- as.data.frame(prop.table(wtd.table(df_35_alterne$cluster_fusion_PAM_OM , weights = df_35_alterne$poidsi)) * 100) %>%
-  as.data.frame() %>%
-  rename(Alterne = Freq)%>% select(-Var1)
+df_n_pond_acm <- stats_list_acm %>%
+  select(Clusters, Source, n_pond) %>%
+  pivot_wider(names_from = Source, values_from = n_pond)
 
-
-
-df_croise_activ_mere <- bind_cols(
-  global_clusters,
-  toujours_clusters,
-  jamais_clusters,
-  alterne_clusters
-)  %>% mutate(across(where(is.numeric), ~ round(.x, 1)))
+df_pct_acm <- stats_list_acm %>%
+  select(Clusters, Source, pct_pond) %>%
+  pivot_wider(names_from = Source, values_from = pct_pond)
 
 
 
 # pcs pere
 liste_df <- list(
-  agri   = df_35_agri,
-  arti   = df_35_arti,
-  cadre  = df_35_cadre,
-  pi     = df_35_pi,
-  qual   = df_35_qualif,
-  nonqual = df_35_nonqua,
-  jamais = df_35_jamais,
-  global = df_35_bis
+  "Global" = df_35_bis,
+  "Agri"   = df_35_agri,
+  "Arti"   = df_35_arti,
+  "Cadre"  = df_35_cadre,
+  "PI"     = df_35_pi,
+  "Qual"   = df_35_qualif,
+  "Non Qual" = df_35_nonqua,
+  "Jamais" = df_35_jamais
 )
 
 stats_list <- purrr::imap_dfr(liste_df, ~ get_cluster_stats(.x, label = .y))
@@ -214,14 +167,14 @@ df_pct_pcsp <- stats_list %>%
 
 # PCS mere
 liste_df_m <- list(
-  agri   = df_35_agri_m,
-  arti   = df_35_arti_m,
-  cadre  = df_35_cadre_m,
-  pi     = df_35_pi_m,
-  qual   = df_35_qualif_m,
-  nonqual = df_35_nonqua_m,
-  jamais = df_35_jamais_m,
-  global = df_35_bis
+  "Global" = df_35_bis,
+  "Agri"   = df_35_agri_m,
+  "Arti"   = df_35_arti_m,
+  "Cadre"  = df_35_cadre_m,
+  "PI" = df_35_pi_m,
+  "Qual"   = df_35_qualif_m,
+  "Non Qual" = df_35_nonqua_m,
+  "Jamais" = df_35_jamais_m
 )
 
 stats_list_m <- purrr::imap_dfr(liste_df_m, ~ get_cluster_stats(.x, label = .y))
@@ -269,6 +222,19 @@ indep_sexe <- as.data.frame(prop.table(wtd.table(df_35_indep$sexee , weights = d
   as.data.frame() %>%
   rename(Indep = Freq)%>% select(-Var1)
 
+ecole_sexe <- as.data.frame(prop.table(wtd.table(df_35_ecole$sexee , weights = df_35_ecole$poidsi)) * 100) %>%
+  as.data.frame() %>%
+  rename(Ecole = Freq) %>% select(-Var1)
+
+foyer_sexe <- as.data.frame(prop.table(wtd.table(df_35_foyer$sexee, weights = df_35_foyer$poidsi)) * 100) %>%
+  as.data.frame() %>%
+  rename(Foyer = Freq)%>% select(-Var1)
+
+instab_sexe <- as.data.frame(prop.table(wtd.table(df_35_instab$sexee , weights = df_35_instab$poidsi)) * 100) %>%
+  as.data.frame() %>%
+  rename(Instab = Freq)%>% select(-Var1)
+
+
 df_croise_sexe <- bind_cols(
   global_sexe,
   etudes_sexe,
@@ -281,4 +247,3 @@ df_croise_sexe <- bind_cols(
 df_croise_sexe[[1]] <- as.character(df_croise_sexe[[1]])
 df_croise_sexe[1, 1] <- "Homme"
 df_croise_sexe[2, 1] <- "Femme"
-
