@@ -1,5 +1,5 @@
 #Chargement des tables
-trajpro <- read.csv("/work/projet-statapp/trajpro.csv", sep = ";")
+trajpro <- read.csv("trajpro.csv", sep = ";",, header = TRUE)
 indiv <- read.csv("indiv.csv", sep = ";", header = TRUE)
 
 #Librairies
@@ -38,14 +38,33 @@ indiv <- indiv %>% mutate(origine_tous_g2bis = case_when(
   (origine_tous_g2 == 99) ~ 66, # Descendant.es d'immigré.es originaires de Turquie et du Moyen-Orient
   (origine_tous_g2 == 80 | origine_tous_g2 == 100 | origine_tous_g2 == 110) ~ 70, # Immigré.es originaires du reste de l'Asie
   (origine_tous_g2 == 88 | origine_tous_g2 == 111) ~ 77, # Descendant.es d'immigré.es originaires de reste de l'Asie
-  (origine_tous_g2 == 120 | origine_tous_g2 == 130) ~ 80, # Immigré.es originaires d'Europe du Sud
-  (origine_tous_g2 == 121 | origine_tous_g2 == 131) ~ 88, # Descendant.es d'originaires d'immigré.es d'Europe du Sud
-  (origine_tous_g2== 140 | origine_tous_g2 == 150) ~ 90, # Immigré.es originaires du reste de l'Europe
-  (origine_tous_g2 == 141 | origine_tous_g2 == 151) ~ 99, # Descendant.es d'immigré.es originaires du reste de l'Europe
+  (origine_tous_g2 == 120 | origine_tous_g2 == 130 | origine_tous_g2== 140 | origine_tous_g2 == 150) ~ 80, # Immigré.es originaires d'Europe
+  (origine_tous_g2 == 121 | origine_tous_g2 == 131 | origine_tous_g2 == 141 | origine_tous_g2 == 151) ~ 88, # Descendant.es d'originaires d'immigré.es d'Europe 
   (origine_tous_g2 == 160 ~ 100), # Immigré.es d'autres pays
   (origine_tous_g2 == 161 ~ 111), # Descendant.es d'immigré.es d'autres pays
   TRUE ~ NA_real_
 ))
+
+indiv <- indiv %>%
+  mutate(pcs_pere_bis = case_when(
+    grepl("^1", pcs_pere)|pcs_pere==7100 ~ "1", #agriculteurs (dont retraités)
+    grepl("^2", pcs_pere)|pcs_pere==7200 ~ "2", #artisans et commerçants (dont retraités)
+    grepl("^3", pcs_pere)|pcs_pere==7400 ~ "3", #cadres (dont retraités)
+    grepl("^4", pcs_pere)|pcs_pere==7500 ~ "4", # professions intermédiaires (dont retraités)
+    grepl("^54", pcs_pere)|grepl("^55", pcs_pere)|grepl("^56", pcs_pere)|grepl("^64", pcs_pere)|grepl("^65", pcs_pere)|grepl("^66", pcs_pere)|grepl("^67", pcs_pere)|grepl("^68", pcs_pere)|grepl("^69", pcs_pere) ~ "5", # employés et ouvirers qualifiés 
+    grepl("^51", pcs_pere)|grepl("^52", pcs_pere)|grepl("^53", pcs_pere)|grepl("^61", pcs_pere)|grepl("^62", pcs_pere)|grepl("^63", pcs_pere)|pcs_pere==7700|pcs_pere==7800|pcs_pere==5000|pcs_pere==6000 ~"6", # employés et ouvriés non qualifiés (dont retraités de TOUS les employés et ouvriers)
+    is.na(pcs_pere)|pcs_pere=="0000" ~"999", # valeur manquante
+    TRUE ~ pcs_pere  # garde la valeur originale sinon
+  ))
+
+# On recode la variable pour avoir des résultats plus lisibles
+indiv <- indiv %>% mutate(t_meract = case_when(
+  t_meract == 1 ~ 1, #  a toujours travaillé
+  t_meract == 2 ~ 2, # jamais travaillée
+  t_meract == 3 ~ 3, # alterne les deux
+  TRUE ~99 # valeurs manquantes, refus, etc
+))
+
 
 
 
@@ -152,7 +171,7 @@ trajpro_wide_modifie_clean <- trajpro_wide_modifie_clean %>% select(-c("0":"13")
 
 df<-trajpro_wide_modifie_clean
 
-df <- merge(trajpro_wide_modifie_clean, indiv[, c("ident", "group1", "anaise", "finetu_an", "finetu_age", "f_finetg", "f_finetuag", "f_finetu_drap", "origine_tous_g2bis", "sexee", "andebtr", "duretu", "poidsi", "a_montan_drap", "a_montan", "pcs_pere", "t_situm" )], by = "ident", all.x = TRUE)
+df <- merge(trajpro_wide_modifie_clean, indiv[, c("ident", "group1", "anaise", "finetu_an", "finetu_age", "f_finetg", "f_finetuag", "f_finetu_drap", "origine_tous_g2bis", "sexee", "andebtr", "duretu", "poidsi", "a_montan_drap", "a_montan", "pcs_pere", "t_meract", "pcs_pere_bis" )], by = "ident", all.x = TRUE)
 head(df)
 
 # Age au premier travail
@@ -169,7 +188,7 @@ df <- df %>%
 
 # Age moyen du premier emploi et durée moyenne des études selon groupe d'origine
 tableau_statistiques <- df %>%
-  filter(origine_tous_g2bis %in% c(33, 55, 66, 77, 88, 99, 1)) %>%
+  filter(origine_tous_g2bis %in% c(22, 33, 55, 66, 77, 88, 1)) %>%
   filter(!duretu %in% c(7777, 8888)) %>%  # Exclure les individus dont duretu est 7777 ou 8888
   group_by(origine_tous_g2bis) %>%
   summarise(
@@ -179,12 +198,12 @@ tableau_statistiques <- df %>%
 
 tableau_statistiques <- tableau_statistiques %>%
   mutate(origine_tous_g2bis = case_when(
+    origine_tous_g2bis == 22 ~ "Outre-Mer",
     origine_tous_g2bis == 33 ~ "Maghreb",
     origine_tous_g2bis == 55 ~ "Afrique Subsaharienne",
     origine_tous_g2bis == 66 ~ "Turquie et Moyen-Orient",
     origine_tous_g2bis == 77 ~ "Reste de l'Asie",
-    origine_tous_g2bis == 88 ~ "Europe du Sud",
-    origine_tous_g2bis == 99 ~ "Reste de l'Europe",
+    origine_tous_g2bis == 88 ~ "Europe",
     origine_tous_g2bis == 1  ~ "Population sans ascendance migratoire"
   ))
 
@@ -222,7 +241,7 @@ filter_df_by_age <- function(data, limit_age) {
   
   data <- data %>% select(-c("36":"60"))
   
-  data <- data %>% filter(group1 %in% c(3,4,5))
+  data <- data %>% filter(origine_tous_g2bis %in% c(1,22,33,55,66,77,88)) #On ne conserve pas les G2 "Autres" car pas assez
 }
 
 # On applique la fonction pour des valeurs de 14 à 40
@@ -284,9 +303,7 @@ ggplot(df_35, aes(x = origine_tous_g2bis)) +
       "55" = "AfS",
       "66" = "T&MO",
       "77" = "As",
-      "88" = "EurS",
-      "99" = "EurR",
-      "111" = "Autre"
+      "88" = "Eur"
     )
   ) +
   theme_minimal() +
@@ -348,22 +365,22 @@ Turbulence <- seqST(df_35.seq)
 summary(Turbulence) 
 hist(Turbulence, col = "cyan", main = "Sequence turbulence")
 
-#DF séquences par origine (A MODIFIER)
+#DF séquences par origine 
 df_35_maj <- df_35 %>% filter(origine_tous_g2bis == 1)
+df_35_om <- df_35 %>% filter(origine_tous_g2bis == 22)
 df_35_mag <- df_35 %>% filter(origine_tous_g2bis == 33)
 df_35_af <- df_35 %>% filter(origine_tous_g2bis == 55)
 df_35_mo <- df_35 %>% filter(origine_tous_g2bis == 66)
 df_35_as <- df_35 %>% filter(origine_tous_g2bis == 77)
-df_35_eurs <- df_35 %>% filter(origine_tous_g2bis == 88)
-df_35_eurr <- df_35 %>% filter(origine_tous_g2bis == 99)
+df_35_eur <- df_35 %>% filter(origine_tous_g2bis == 88)
 
 #Séquences par origine
 df_35_mag.seq <- seqdef(df_35_mag, 2:23, states = df_35.scode, labels = df_35.labels, weights=df_35_mag$poidsi)
+df_35_om.seq <- seqdef(df_35_om, 2:23, states = df_35.scode, labels = df_35.labels, weights=df_35_om$poidsi)
 df_35_as.seq <- seqdef(df_35_as, 2:23, states = df_35.scode, labels = df_35.labels, weights=df_35_as$poidsi)
 df_35_maj.seq <- seqdef(df_35_maj, 2:23, states = df_35.scode, labels = df_35.labels, weights=df_35_maj$poidsi)
 df_35_af.seq <- seqdef(df_35_af, 2:23, states = df_35.scode, labels = df_35.labels, weights=df_35_af$poidsi)
-df_35_eurr.seq <- seqdef(df_35_eurr, 2:23, states = df_35.scode, labels = df_35.labels, weights=df_35_eurr$poidsi)
-df_35_eurs.seq <- seqdef(df_35_eurs, 2:23, states = df_35.scode, labels = df_35.labels, weights=df_35_eurs$poidsi)
+df_35_eur.seq <- seqdef(df_35_eur, 2:23, states = df_35.scode, labels = df_35.labels, weights=df_35_eur$poidsi)
 df_35_mo.seq <- seqdef(df_35_mo, 2:23, states = df_35.scode, labels = df_35.labels, weights=df_35_mo$poidsi)
 
 # Plot de comparaison
@@ -372,10 +389,10 @@ png("Chronogrammes comparés.png", width = 2200, height = 2700, res = 300)
 par(mfrow = c(4, 2), mar = c(4, 4, 2, 2), oma = c(0, 0, 3, 0))  
 
 seqdplot(df_35_maj.seq, withlegend = F, border = NA, main = "Population majoritaire")
+seqdplot(df_35_om.seq, withlegend = F, border = NA, main = "Descendants de domiens")
 seqdplot(df_35_mag.seq, withlegend = F, border = NA, main = "Descendants d'immigrés - Maghreb")
 seqdplot(df_35_af.seq, withlegend = F, border = NA, main = "Descendants d'immigrés - Afrique subsaharienne")
-seqdplot(df_35_eurs.seq, withlegend = F, border = NA, main = "Descendants d'immigrés - Europe du sud")
-seqdplot(df_35_eurr.seq, withlegend = F, border = NA, main = "Descendants d'immigrés - Reste de l'Europe")
+seqdplot(df_35_eur.seq, withlegend = F, border = NA, main = "Descendants d'immigrés - Europe")
 seqdplot(df_35_as.seq, withlegend = F, border = NA, main = "Descendants d'immigrés - Reste de l'Asie")
 seqdplot(df_35_eurr.seq, withlegend = F, border = NA, main = "Descendants d'immigrés - Moyen Orient et Turquie")
 
@@ -474,10 +491,6 @@ clusterForMethodAndDist <- function(method, distance, k) {
     stop("La méthode n'est pas reconnue, utiliser 'PAM' ou 'CAH' ou 'CAHPAM'.")
   }
 }
-
-result <- clusterForMethodAndDist(method="PAM", distance=disOM, k=6)
-cluster <- result$cutree
-seqdplot(df_35.seq, group = cluster, border = NA)
 
 ##################
 # Visulisation des stats de qualités des différentes distances
@@ -893,7 +906,7 @@ seqHtplot(df_40.seq)
 
 
 ##################
-# Description clusters avec PAMOM
+# TRAVAIL SUR LA TYPOLOGIE FINALE
 ##################
 
 
@@ -903,10 +916,11 @@ seqHtplot(df_40.seq)
 result <- clusterForMethodAndDist(method="PAM", distance=disOM, k=6)
 cluster_PAM_codes <- result$cluster$clustering
 cluster_PAM_OM <- factor(cluster_PAM_codes,
-                         levels = c(1, 7798, 8533, 8964, 9020, 9065),
+                         levels = c(1, 7763, 8496, 8922, 8978, 9023),
                          labels = c("Ecole - Emploi", "Au Foyer", "Indépendant",  "Ecole - Emploi Bis","Instabilité", "Etudes - Emploi"))
-seqdplot(df_35.seq, group = cluster_PAM_OM, border = NA)
+seqdplot(df_35.seq, group = cluster_PAM_codes, border = NA)
 levels(cluster_PAM_OM)
+
 
 print(df_35.seq[unique(cluster_PAM_codes), ], format = "SPS")
 
@@ -918,7 +932,7 @@ df_35$cluster_PAM_OM <- cluster_PAM_OM
 
 # S'assurer que les variables sont des facteurs avec labels explicites
 df_35$origine_tous_g2bis <- factor(df_35$origine_tous_g2bis,
-                                   levels = c(1, 22, 33, 55, 66, 77, 88, 99, 111),
+                                   levels = c(1, 22, 33, 55, 66, 77, 88),
                                    labels = c("Maj", "Outre-Mer", "Maghreb", "Afrique", "Turquie&Moyen-Orient", "Asie", "Europe Sud", "Reste de l'Europe", "Autres"))
 
 # Créer le tableau croisé pondéré sous forme de table (type matrix)
@@ -1056,7 +1070,7 @@ cat("Écart médian : ", mediane_ecart, "\n")
 # Fusion cluster
 
 cluster_fusion_PAM_codes <- cluster_PAM_codes
-cluster_fusion_PAM_codes[cluster_PAM_codes %in% c(8964)] <- 1  # On fusionne deux clusters très similaires
+cluster_fusion_PAM_codes[cluster_PAM_codes %in% c(8922)] <- 1  # On fusionne deux clusters très similaires
 seqdplot(df_35.seq, group = cluster_fusion_PAM_codes, border = NA)
 
 # Qualité pour clusterisation PAM avec fusion 
@@ -1130,8 +1144,8 @@ dev.off()
 
 
 cluster_fusion_PAM_OM <- factor(cluster_fusion_PAM_codes,
-                                  levels = c(1, 7798, 8533, 9020, 9065),
-                                  labels = c("Accès rapide et stable à l’emploi", "Allers-retours entre emploi et foyer", "Travail indépendant et emploi salarié", "Trajectoire marquée par une instabilité durable", "Insertion tardive mais stable après des études longues"))
+                                  levels = c(1, 7763, 8496, 8978, 9023),
+                                  labels = c("Accès rapide et stable à l’emploi", "Allers-retours entre emploi et foyer", "Travail indépendant et emploi salarié", "Instabilité durable", "Insertion tardive mais stable après des études longues"))
 
 png("Chronogrammes typologie.png", width = 2200, height = 2300, res = 300)
 seqdplot(df_35.seq, group = cluster_fusion_PAM_OM, border = NA)
@@ -1145,6 +1159,33 @@ dev.off()
 # On ajoute l'appartenance aux cluster comme un variable de df 35
 df_35$cluster_fusion_PAM_OM <- cluster_fusion_PAM_OM
 
+
+##################
+# Weighted tables
+##################
+
+library(questionr)
+
+#On va faire les tables 
+### On commence par faire une table par cluster
+# attention penser à avoir la variable pcs_pere_bis
+df_35_ecole <- df_35 %>% filter(cluster_fusion_PAM_OM == "Accès rapide et stable à l’emploi")
+df_35_etudes <- df_35 %>% filter(cluster_fusion_PAM_OM == "Insertion tardive mais stable après des études longues")
+df_35_instab <- df_35 %>% filter(cluster_fusion_PAM_OM == "Instabilité durable")
+df_35_indep <- df_35 %>% filter(cluster_fusion_PAM_OM == "Travail indépendant et emploi salarié")
+df_35_foyer <- df_35 %>%  filter(cluster_fusion_PAM_OM == "Allers-retours entre emploi et foyer")
+
+
+# tables pondérées formule
+prop.table(wtd.table(df_35$origine_tous_g2bis, weights = df_35$poidsi)) * 100
+prop.table(wtd.table(df_35_ecole$origine_tous_g2bis, weights = df_35_ecole$poidsi)) * 100
+prop.table(wtd.table(df_35_etudes$origine_tous_g2bis, weights = df_35_etudes$poidsi)) * 100
+prop.table(wtd.table(df_35_instab$origine_tous_g2bis, weights = df_35_instab$poidsi)) * 100
+prop.table(wtd.table(df_35_indep$origine_tous_g2bis, weights = df_35_indep$poidsi)) * 100
+prop.table(wtd.table(df_35_foyer$origine_tous_g2bis, weights = df_35_foyer$poidsi)) * 100
+
+
+
 ##################
 # Regression logistiques multinomiales
 ##################
@@ -1152,14 +1193,22 @@ df_35$cluster_fusion_PAM_OM <- cluster_fusion_PAM_OM
 library(tidyverse)
 library(labelled)
 library(gtsummary)
+library(broom)
 
 # On définit le cluster de base (celui où il y a le plus d'individus)
 df_35$cluster_fusion_PAM_OM <- df_35$cluster_fusion_PAM_OM |> fct_relevel("Accès rapide et stable à l’emploi")
 
+# On définit la valeurs de base pour chacun des odds ratio
+df_35$origine_tous_g2bis <- factor(df_35$origine_tous_g2bis)
+df_35$origine_tous_g2bis <- relevel(df_35$origine_tous_g2bis, ref = "1")
+df_35$pcs_pere_bis <- factor(df_35$pcs_pere_bis)
+df_35$pcs_pere_bis <- relevel(df_35$pcs_pere_bis, ref = "5")
+
 # Modèle 1
 reg <- nnet::multinom(
   cluster_fusion_PAM_OM ~ origine_tous_g2bis,
-  data = df_35
+  data = df_35,
+  weights = poidsi
 )
 
 tbl <- reg |> tbl_regression(exponentiate = TRUE)
@@ -1167,6 +1216,16 @@ tbl <- reg |> tbl_regression(exponentiate = TRUE)
 theme_gtsummary_language("fr", decimal.mark = ",")
 
 tbl |> guideR::style_grouped_tbl()
+
+
+# Modèle non pondéré (multinom) et avec effets marginaux
+regprime <- multinom(cluster_fusion_PAM_OM ~ origine_tous_g2bis,
+                data = df_35)
+
+tblprime <- tidy(regprime, conf.int = TRUE, exponentiate = TRUE)
+
+view(tblprime)
+
 
 # Modèle 2
 reg2 <- nnet::multinom(
@@ -1179,4 +1238,38 @@ tbl2 <- reg2 |> tbl_regression(exponentiate = TRUE)
 theme_gtsummary_language("fr", decimal.mark = ",")
 
 tbl2 |> guideR::style_grouped_tbl()
+
+table(df_35$pcs_pere)
+
+
+# Modèle 3
+reg3 <- nnet::multinom(
+  cluster_fusion_PAM_OM ~ origine_tous_g2bis + sexee + pcs_pere_bis,
+  data = df_35
+)
+
+tbl3 <- reg3 |> tbl_regression(exponentiate = TRUE)
+
+theme_gtsummary_language("fr", decimal.mark = ",")
+
+tbl3 |> guideR::style_grouped_tbl()
+
+
+dev.off()
+
+# Calcule la proportion de chômage (valeur 3) à chaque âge
+chomage_prop <- apply(df_35.seq == 3, 2, mean, na.rm = TRUE)
+
+# Définir le vecteur d'âges (colonne 1 = âge 14, colonne 22 = âge 35)
+ages <- 14:35
+
+# Tracer la courbe
+plot(ages, chomage_prop, type = "l", col = "red", lwd = 2,
+     xlab = "Âge", ylab = "Prévalence du chômage",
+     main = "Prévalence du chômage selon l'âge (14–35 ans)")
+
+
+
+
+
 
