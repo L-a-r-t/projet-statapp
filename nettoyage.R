@@ -1161,32 +1161,6 @@ df_35$cluster_fusion_PAM_OM <- cluster_fusion_PAM_OM
 
 
 ##################
-# Weighted tables
-##################
-
-library(questionr)
-
-#On va faire les tables 
-### On commence par faire une table par cluster
-# attention penser à avoir la variable pcs_pere_bis
-df_35_ecole <- df_35 %>% filter(cluster_fusion_PAM_OM == "Accès rapide et stable à l’emploi")
-df_35_etudes <- df_35 %>% filter(cluster_fusion_PAM_OM == "Insertion tardive mais stable après des études longues")
-df_35_instab <- df_35 %>% filter(cluster_fusion_PAM_OM == "Instabilité durable")
-df_35_indep <- df_35 %>% filter(cluster_fusion_PAM_OM == "Travail indépendant et emploi salarié")
-df_35_foyer <- df_35 %>%  filter(cluster_fusion_PAM_OM == "Allers-retours entre emploi et foyer")
-
-
-# tables pondérées formule
-prop.table(wtd.table(df_35$origine_tous_g2bis, weights = df_35$poidsi)) * 100
-prop.table(wtd.table(df_35_ecole$origine_tous_g2bis, weights = df_35_ecole$poidsi)) * 100
-prop.table(wtd.table(df_35_etudes$origine_tous_g2bis, weights = df_35_etudes$poidsi)) * 100
-prop.table(wtd.table(df_35_instab$origine_tous_g2bis, weights = df_35_instab$poidsi)) * 100
-prop.table(wtd.table(df_35_indep$origine_tous_g2bis, weights = df_35_indep$poidsi)) * 100
-prop.table(wtd.table(df_35_foyer$origine_tous_g2bis, weights = df_35_foyer$poidsi)) * 100
-
-
-
-##################
 # Regression logistiques multinomiales
 ##################
 
@@ -1230,7 +1204,8 @@ view(tblprime)
 # Modèle 2
 reg2 <- nnet::multinom(
   cluster_fusion_PAM_OM ~ origine_tous_g2bis + sexee,
-  data = df_35
+  data = df_35,
+  weights = poidsi
 )
 
 tbl2 <- reg2 |> tbl_regression(exponentiate = TRUE)
@@ -1239,13 +1214,19 @@ theme_gtsummary_language("fr", decimal.mark = ",")
 
 tbl2 |> guideR::style_grouped_tbl()
 
-table(df_35$pcs_pere)
 
 
 # Modèle 3
+
+# On ne conserve que les individus pour qui la PCS du père 
+df_35bis <- df_35 |> 
+  filter(pcs_pere_bis != 999) |> 
+  droplevels()
+
 reg3 <- nnet::multinom(
   cluster_fusion_PAM_OM ~ origine_tous_g2bis + sexee + pcs_pere_bis,
-  data = df_35
+  data = df_35bis,
+  weights = poidsi
 )
 
 tbl3 <- reg3 |> tbl_regression(exponentiate = TRUE)
