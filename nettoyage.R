@@ -65,6 +65,13 @@ indiv <- indiv %>% mutate(t_meract = case_when(
   TRUE ~99 # valeurs manquantes, refus, etc
 ))
 
+# recodage de segondeg (descendance de couple mixte) en une indicatrice
+indiv <- indiv %>% mutate(parents_mixte = case_when(
+  secondeg %in% c(211, 221, 241, 251, 261, 311, 341, 361, 411, 421, 441, 461, 501) ~ 1,
+  secondeg %in% c(210, 220, 240, 250, 260, 310, 340, 360, 410, 420, 440, 460, 500) ~ 0,
+  TRUE ~ 0
+))
+
 
 
 
@@ -171,7 +178,7 @@ trajpro_wide_modifie_clean <- trajpro_wide_modifie_clean %>% select(-c("0":"13")
 
 df<-trajpro_wide_modifie_clean
 
-df <- merge(trajpro_wide_modifie_clean, indiv[, c("ident", "group1", "anaise", "finetu_an", "finetu_age", "f_finetg", "f_finetuag", "f_finetu_drap", "origine_tous_g2bis", "sexee", "andebtr", "duretu", "poidsi", "a_montan_drap", "a_montan", "pcs_pere", "t_meract", "pcs_pere_bis" )], by = "ident", all.x = TRUE)
+df <- merge(trajpro_wide_modifie_clean, indiv[, c("ident", "group1", "anaise", "finetu_an", "finetu_age", "f_finetg", "f_finetuag", "f_finetu_drap", "origine_tous_g2bis", "sexee", "andebtr", "duretu", "poidsi", "a_montan_drap", "a_montan", "pcs_pere", "t_meract", "pcs_pere_bis", "secondeg", "parents_mixte" )], by = "ident", all.x = TRUE)
 head(df)
 
 # Age au premier travail
@@ -1167,6 +1174,7 @@ df_35$cluster_fusion_PAM_OM <- cluster_fusion_PAM_OM
 library(tidyverse)
 library(labelled)
 library(gtsummary)
+library(emmeans)
 library(broom)
 
 # On définit le cluster de base (celui où il y a le plus d'individus)
@@ -1177,6 +1185,8 @@ df_35$origine_tous_g2bis <- factor(df_35$origine_tous_g2bis)
 df_35$origine_tous_g2bis <- relevel(df_35$origine_tous_g2bis, ref = "1")
 df_35$pcs_pere_bis <- factor(df_35$pcs_pere_bis)
 df_35$pcs_pere_bis <- relevel(df_35$pcs_pere_bis, ref = "5")
+df_35$t_meract <- factor(df_35$t_meract)
+df_35$t_meract <- relevel(df_35$t_meract, ref = "1")
 
 # Modèle 1
 reg <- nnet::multinom(
@@ -1185,7 +1195,7 @@ reg <- nnet::multinom(
   weights = poidsi
 )
 
-tbl <- reg |> tbl_regression(exponentiate = TRUE)
+tbl <- reg |> tbl_regression(tidy_fun = broom.helpers::tidy_avg_slopes) |> bold_labels()
 
 theme_gtsummary_language("fr", decimal.mark = ",")
 
@@ -1196,10 +1206,13 @@ tbl |> guideR::style_grouped_tbl()
 regprime <- multinom(cluster_fusion_PAM_OM ~ origine_tous_g2bis,
                 data = df_35)
 
-tblprime <- tidy(regprime, conf.int = TRUE, exponentiate = TRUE)
+tblprime <- tidy(regprime_ame, conf.int = TRUE, exponentiate = TRUE)
 
 view(tblprime)
 
+
+
+regprime_ame <- emmeans(regprime, ~ origine_tous_g2bis)
 
 # Modèle 2
 reg2 <- nnet::multinom(
@@ -1208,7 +1221,7 @@ reg2 <- nnet::multinom(
   weights = poidsi
 )
 
-tbl2 <- reg2 |> tbl_regression(exponentiate = TRUE)
+tbl2 <- reg2 |> tbl_regression(tidy_fun = broom.helpers::tidy_avg_slopes) |> bold_labels()
 
 theme_gtsummary_language("fr", decimal.mark = ",")
 
@@ -1229,11 +1242,55 @@ reg3 <- nnet::multinom(
   weights = poidsi
 )
 
-tbl3 <- reg3 |> tbl_regression(exponentiate = TRUE)
+tbl3 <- reg3 |> tbl_regression(tidy_fun = broom.helpers::tidy_avg_slopes) |> bold_labels()
 
 theme_gtsummary_language("fr", decimal.mark = ",")
 
 tbl3 |> guideR::style_grouped_tbl()
+
+plottt <- data |>
+  ggplot( aes(x=value, fill=type)) +
+  theme_ipsum() +
+  labs(fill="")
+
+# Modèle 4
+
+# On ne conserve que les individus pour qui on a l'activité de la mère
+df_35_4 <- df_35bis |> 
+  filter(t_meract != 99) |> 
+  droplevels()
+
+reg4 <- nnet::multinom(
+  cluster_fusion_PAM_OM ~ origine_tous_g2bis + sexee + pcs_pere_bis + t_meract,
+  data = df_35_4,
+  weights = poidsi
+)
+
+tbl4 <- reg4 |> tbl_regression(tidy_fun = broom.helpers::tidy_avg_slopes) |> bold_labels()
+
+theme_gtsummary_language("fr", decimal.mark = ",")
+
+tbl4 |> guideR::style_grouped_tbl()
+
+
+
+# Modèle 5
+
+# On ne conserve que les individus pour qui on a l'activité de la mère
+df_35_5 <- df_35_4
+
+reg5 <- nnet::multinom(
+  cluster_fusion_PAM_OM ~ origine_tous_g2bis + sexee + pcs_pere_bis + t_meract + parents_mixte,
+  data = df_35_5,
+  weights = poidsi
+)
+
+tbl5 <- reg5 |> tbl_regression(tidy_fun = broom.helpers::tidy_avg_slopes) |> bold_labels()
+
+theme_gtsummary_language("fr", decimal.mark = ",")
+
+tbl5 |> guideR::style_grouped_tbl()
+
 
 
 dev.off()
