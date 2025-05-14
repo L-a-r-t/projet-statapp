@@ -1176,6 +1176,11 @@ library(labelled)
 library(gtsummary)
 library(emmeans)
 library(broom)
+library(survey)
+install.packages("remotes")
+remotes::install_github("carlganz/svrepmisc")
+library(svrepmisc)
+library(stargazer)
 
 # On définit le cluster de base (celui où il y a le plus d'individus)
 df_35$cluster_fusion_PAM_OM <- df_35$cluster_fusion_PAM_OM |> fct_relevel("Accès rapide et stable à l’emploi")
@@ -1192,7 +1197,7 @@ df_35$t_meract <- relevel(df_35$t_meract, ref = "1")
 reg <- nnet::multinom(
   cluster_fusion_PAM_OM ~ origine_tous_g2bis,
   data = df_35,
-  weights = poidsi
+#  weights = poidsi
 )
 
 tbl <- reg |> tbl_regression(tidy_fun = broom.helpers::tidy_avg_slopes) |> bold_labels()
@@ -1201,24 +1206,22 @@ theme_gtsummary_language("fr", decimal.mark = ",")
 
 tbl |> guideR::style_grouped_tbl()
 
+## Odds ratios
 
-# Modèle non pondéré (multinom) et avec effets marginaux
-regprime <- multinom(cluster_fusion_PAM_OM ~ origine_tous_g2bis,
-                data = df_35)
+dw_1 <- svydesign(ids = ~1, data = df_35, weights = ~poidsi)
+dwr_1 <- as.svrepdesign(dw, type = "bootstrap", replicates = 1000)
+regm_1 <- svymultinom(cluster_fusion_PAM_OM ~ origine_tous_g2bis, design = dwr,maxit=1000)
+regm_1_tidy <- tidy(regm_1, exponentiate = TRUE, conf.int = TRUE)
 
-tblprime <- tidy(regprime_ame, conf.int = TRUE, exponentiate = TRUE)
-
-view(tblprime)
-
+regm_1_tidy_rounded <- regm_1_tidy %>% mutate(across(where(is.numeric), \(x) round(x, 4)))
 
 
-regprime_ame <- emmeans(regprime, ~ origine_tous_g2bis)
 
 # Modèle 2
 reg2 <- nnet::multinom(
   cluster_fusion_PAM_OM ~ origine_tous_g2bis + sexee,
   data = df_35,
-  weights = poidsi
+#  weights = poidsi
 )
 
 tbl2 <- reg2 |> tbl_regression(tidy_fun = broom.helpers::tidy_avg_slopes) |> bold_labels()
@@ -1226,6 +1229,15 @@ tbl2 <- reg2 |> tbl_regression(tidy_fun = broom.helpers::tidy_avg_slopes) |> bol
 theme_gtsummary_language("fr", decimal.mark = ",")
 
 tbl2 |> guideR::style_grouped_tbl()
+
+## Odds ratios
+
+dw_2 <- svydesign(ids = ~1, data = df_35, weights = ~poidsi)
+dwr_2 <- as.svrepdesign(dw, type = "bootstrap", replicates = 1000)
+regm_2 <- svymultinom(cluster_fusion_PAM_OM ~ origine_tous_g2bis + sexee, design = dwr,maxit=1000)
+regm_2_tidy <- tidy(regm_2, exponentiate = TRUE, conf.int = TRUE)
+
+regm_2_tidy_rounded <- regm_2_tidy %>% mutate(across(where(is.numeric), \(x) round(x, 4)))
 
 
 
@@ -1236,34 +1248,15 @@ df_35bis <- df_35 |>
   filter(pcs_pere_bis != 999) |> 
   droplevels()
 
-reg3 <- nnet::multinom(
-  cluster_fusion_PAM_OM ~ origine_tous_g2bis + sexee + pcs_pere_bis,
-  data = df_35bis,
-  weights = poidsi
-)
-
-tbl3 <- reg3 |> tbl_regression(tidy_fun = broom.helpers::tidy_avg_slopes) |> bold_labels()
-
-theme_gtsummary_language("fr", decimal.mark = ",")
-
-tbl3 |> guideR::style_grouped_tbl()
-
-plottt <- data |>
-  ggplot( aes(x=value, fill=type)) +
-  theme_ipsum() +
-  labs(fill="")
-
-# Modèle 4
-
 # On ne conserve que les individus pour qui on a l'activité de la mère
-df_35_4 <- df_35bis |> 
+df_35_3 <- df_35bis |> 
   filter(t_meract != 99) |> 
   droplevels()
 
 reg4 <- nnet::multinom(
   cluster_fusion_PAM_OM ~ origine_tous_g2bis + sexee + pcs_pere_bis + t_meract,
   data = df_35_4,
-  weights = poidsi
+#  weights = poidsi
 )
 
 tbl4 <- reg4 |> tbl_regression(tidy_fun = broom.helpers::tidy_avg_slopes) |> bold_labels()
@@ -1272,12 +1265,21 @@ theme_gtsummary_language("fr", decimal.mark = ",")
 
 tbl4 |> guideR::style_grouped_tbl()
 
+## Odds ratios
+
+dw_3 <- svydesign(ids = ~1, data = df_35_3, weights = ~poidsi)
+dwr_3 <- as.svrepdesign(dw, type = "bootstrap", replicates = 1000)
+regm_3 <- svymultinom(cluster_fusion_PAM_OM ~ origine_tous_g2bis + sexee + pcs_pere_bis + t_meract, design = dwr,maxit=1000)
+regm_3_tidy <- tidy(regm_3, exponentiate = TRUE, conf.int = TRUE)
+
+regm_3_tidy_rounded <- regm_3_tidy %>% mutate(across(where(is.numeric), \(x) round(x, 4)))
 
 
-# Modèle 5
+
+# Modèle 4
 
 # On ne conserve que les individus pour qui on a l'activité de la mère
-df_35_5 <- df_35_4
+df_35_5 <- df_35_3
 
 reg5 <- nnet::multinom(
   cluster_fusion_PAM_OM ~ origine_tous_g2bis + sexee + pcs_pere_bis + t_meract + parents_mixte,
@@ -1285,12 +1287,21 @@ reg5 <- nnet::multinom(
   weights = poidsi
 )
 
-tbl5 <- reg5 |> tbl_regression(tidy_fun = broom.helpers::tidy_avg_slopes) |> bold_labels()
+tbl4 <- reg4 |> tbl_regression(tidy_fun = broom.helpers::tidy_avg_slopes) |> bold_labels()
 
 theme_gtsummary_language("fr", decimal.mark = ",")
 
 tbl5 |> guideR::style_grouped_tbl()
 
+## Odds ratios
+
+dw <- svydesign(ids = ~1, data = df_35_5, weights = ~poidsi)
+dwr <- as.svrepdesign(dw, type = "bootstrap", replicates = 1000)
+regm0 <- svymultinom(cluster_fusion_PAM_OM ~ origine_tous_g2bis + sexee + pcs_pere_bis + t_meract + parents_mixte, design = dwr,maxit=1000)
+regm0_tidy <- tidy(regm0, exponentiate = TRUE, conf.int = TRUE)
+stargazer(regm0_tidy, type='latex', summary=FALSE)
+
+regm0_tidy_rounded <- regm0_tidy %>% mutate(across(where(is.numeric), \(x) round(x, 4)))
 
 
 dev.off()
